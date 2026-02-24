@@ -7,7 +7,7 @@ from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 class Mapa:
     def __init__(self, largura_tela=1920, altura_tela=1080):
-        self.rect = pygame.Rect(int(largura_tela * 0.22), 120, int(largura_tela * 0.54), int(altura_tela * 0.56))
+        self.rect = pygame.Rect(int(largura_tela * 0.20), 120, int(largura_tela * 0.58), int(altura_tela * 0.56))
         self.fonte_titulo = obter_fonte(30, negrito=True)
         self.fonte_carta = obter_fonte(20)
         self.raio_hex = 42
@@ -58,8 +58,6 @@ class Mapa:
         return None
 
     def desenhar(self, tela, cartas_mapa, mostrar_grade=False, carta_drag=None):
-        pygame.draw.rect(tela, (18, 45, 30), self.rect, border_radius=16)
-        pygame.draw.rect(tela, (74, 128, 98), self.rect, width=2, border_radius=16)
         tela.blit(self.fonte_titulo.render("Mapa", True, (236, 236, 236)), (self.rect.x + 14, self.rect.y + 8))
 
         if mostrar_grade:
