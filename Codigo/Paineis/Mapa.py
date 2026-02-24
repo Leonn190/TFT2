@@ -12,6 +12,7 @@ class Mapa:
         self.fonte_carta = obter_fonte(20)
         self.raio_hex = 42
         self.slots = self._gerar_grade_hex(linhas=4, colunas=7)
+        self.slots_validos = {(0, 1), (0, 2), (1, 0), (1, 1), (1, 3), (2, 1), (2, 2), (2, 4), (3, 0), (3, 2), (3, 3), (3, 5), (4, 1), (4, 2), (4, 4), (5, 0), (5, 1), (5, 3), (6, 1), (6, 2)}
 
     def _gerar_grade_hex(self, linhas, colunas):
         slots = []
@@ -38,6 +39,8 @@ class Mapa:
         melhor = None
         melhor_dist = 10_000
         for slot in self.slots:
+            if (slot["q"], slot["r"]) not in self.slots_validos:
+                continue
             dist = math.dist(pos, slot["centro"])
             if dist < melhor_dist:
                 melhor_dist = dist
@@ -58,27 +61,33 @@ class Mapa:
         return None
 
     def desenhar(self, tela, cartas_mapa, mostrar_grade=False, carta_drag=None):
+        pygame.draw.rect(tela, (52, 56, 62), self.rect, border_radius=14)
+        pygame.draw.rect(tela, (124, 132, 143), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Mapa", True, (236, 236, 236)), (self.rect.x + 14, self.rect.y + 8))
 
         if mostrar_grade:
             for slot in self.slots:
-                pygame.draw.polygon(tela, (92, 140, 113), self._pontos_hex(slot["centro"]), width=2)
+                if (slot["q"], slot["r"]) not in self.slots_validos:
+                    continue
+                pygame.draw.polygon(tela, (120, 126, 136), self._pontos_hex(slot["centro"]), width=2)
 
         mapa_por_pos = {(entry["q"], entry["r"]): entry["carta"] for entry in cartas_mapa}
 
         for slot in self.slots:
+            if (slot["q"], slot["r"]) not in self.slots_validos:
+                continue
             carta = mapa_por_pos.get((slot["q"], slot["r"]))
             if carta is None:
                 continue
             poly = self._pontos_hex(slot["centro"])
-            pygame.draw.polygon(tela, (72, 104, 84), poly)
-            pygame.draw.polygon(tela, (160, 198, 173), poly, width=2)
+            pygame.draw.polygon(tela, (84, 90, 98), poly)
+            pygame.draw.polygon(tela, (178, 186, 196), poly, width=2)
             texto_nome = self.fonte_carta.render(carta.get("nome", "Carta"), True, (245, 245, 245))
             sinergia = carta.get("sinergia", "-")
             sinergia_secundaria = carta.get("sinergia_secundaria")
             if sinergia_secundaria:
                 sinergia = f"{sinergia}/{sinergia_secundaria}"
-            texto_sin = self.fonte_carta.render(sinergia, True, (224, 233, 217))
+            texto_sin = self.fonte_carta.render(sinergia, True, (216, 220, 226))
             tela.blit(texto_nome, (slot["centro"][0] - texto_nome.get_width() // 2, slot["centro"][1] - 18))
             tela.blit(texto_sin, (slot["centro"][0] - texto_sin.get_width() // 2, slot["centro"][1] + 2))
 
