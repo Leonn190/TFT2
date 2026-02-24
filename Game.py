@@ -25,7 +25,7 @@ CONFIG = {
 }
 
 INFO = {
-
+    "Escuro": 100
 }
 
 # Dicionário que controla qual cena está ativa
