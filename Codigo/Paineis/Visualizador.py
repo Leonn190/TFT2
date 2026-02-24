@@ -24,8 +24,6 @@ class Visualizador:
         return None
 
     def desenhar(self, tela, jogadores, jogador_ativo_id):
-        pygame.draw.rect(tela, (20, 28, 36), self.rect, border_radius=14)
-        pygame.draw.rect(tela, (86, 102, 122), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Players", True, (236, 236, 236)), (self.rect.x + 10, self.rect.y + 10))
 
         for jogador, linha in zip(jogadores, self._linhas(len(jogadores))):

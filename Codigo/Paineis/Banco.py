@@ -5,17 +5,17 @@ from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 class Banco:
     def __init__(self, largura_tela=1920, altura_tela=1080):
-        self.rect = pygame.Rect(30, int(altura_tela * 0.73), int(largura_tela * 0.67), int(altura_tela * 0.24))
+        self.rect = pygame.Rect(30, int(altura_tela * 0.81), int(largura_tela * 0.67), int(altura_tela * 0.18))
         self.fonte_titulo = obter_fonte(30, negrito=True)
         self.fonte_carta = obter_fonte(22)
         self.drag = None
 
     def _rects_slots(self, quantidade):
         quantidade = max(1, quantidade)
-        margem = 16
+        margem = 12
         largura_slot = (self.rect.width - margem * (quantidade + 1)) // quantidade
-        altura_slot = self.rect.height - 56
-        y = self.rect.y + 42
+        altura_slot = self.rect.height - 54
+        y = self.rect.y + 40
         return [
             pygame.Rect(self.rect.x + margem + i * (largura_slot + margem), y, largura_slot, altura_slot)
             for i in range(quantidade)
@@ -53,13 +53,13 @@ class Banco:
                 sinergia = carta.get("sinergia", "-")
                 if carta.get("sinergia_secundaria"):
                     sinergia = f"{sinergia}/{carta.get('sinergia_secundaria')}"
-                tela.blit(self.fonte_carta.render(nome, True, (240, 240, 240)), (slot.x + 10, slot.y + 10))
-                tela.blit(self.fonte_carta.render(sinergia, True, (204, 214, 191)), (slot.x + 10, slot.y + 42))
+                tela.blit(self.fonte_carta.render(nome, True, (240, 240, 240)), (slot.x + 8, slot.y + 8))
+                tela.blit(self.fonte_carta.render(sinergia, True, (204, 214, 191)), (slot.x + 8, slot.y + 34))
 
         if self.drag is not None:
             mouse = pygame.mouse.get_pos()
             carta = self.drag["carta"]
-            w, h = 170, 95
+            w, h = 170, 78
             ghost = pygame.Rect(mouse[0] - self.drag["offset"][0], mouse[1] - self.drag["offset"][1], w, h)
             pygame.draw.rect(tela, (74, 94, 66), ghost, border_radius=10)
             pygame.draw.rect(tela, (135, 162, 130), ghost, width=2, border_radius=10)

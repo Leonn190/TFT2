@@ -10,8 +10,6 @@ class Sinergias:
         self.fonte_item = obter_fonte(22)
 
     def desenhar(self, tela, sinergias):
-        pygame.draw.rect(tela, (24, 34, 24), self.rect, border_radius=14)
-        pygame.draw.rect(tela, (92, 118, 92), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Sinergias", True, (236, 236, 236)), (self.rect.x + 10, self.rect.y + 8))
 
         y = self.rect.y + 52
