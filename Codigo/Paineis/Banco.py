@@ -51,6 +51,8 @@ class Banco:
                 carta = cartas_banco[indice]
                 nome = carta.get("nome", "Carta")
                 sinergia = carta.get("sinergia", "-")
+                if carta.get("sinergia_secundaria"):
+                    sinergia = f"{sinergia}/{carta.get('sinergia_secundaria')}"
                 tela.blit(self.fonte_carta.render(nome, True, (240, 240, 240)), (slot.x + 10, slot.y + 10))
                 tela.blit(self.fonte_carta.render(sinergia, True, (204, 214, 191)), (slot.x + 10, slot.y + 42))
 

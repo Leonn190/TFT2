@@ -154,8 +154,14 @@ class Ativador:
     def _calcular_sinergias(mapa):
         contador = {}
         for entry in mapa:
-            sinergia = entry["carta"].get("sinergia", "-")
-            contador[sinergia] = contador.get(sinergia, 0) + 1
+            carta = entry["carta"]
+            sinergias = [carta.get("sinergia", "-")]
+            sinergia_secundaria = carta.get("sinergia_secundaria")
+            if sinergia_secundaria:
+                sinergias.append(sinergia_secundaria)
+
+            for sinergia in sinergias:
+                contador[sinergia] = contador.get(sinergia, 0) + 1
         return [{"sinergia": nome, "quantidade": qtd} for nome, qtd in sorted(contador.items(), key=lambda item: (-item[1], item[0]))]
 
     def posicionar_do_banco(self, partida, player_id, indice_banco, q, r):
@@ -186,6 +192,28 @@ class Ativador:
 
         estado_jogador["banco"].pop(indice_banco)
         estado_jogador["mapa"].append({"carta": carta, "q": q, "r": r})
+        estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
+        return True, "ok"
+
+    def mover_mapa_para_selecao(self, partida, player_id, q, r, indice_selecao):
+        self._inicializar_partida(partida)
+        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+
+        if indice_selecao < 0 or indice_selecao >= 1:
+            return False, "slot_bloqueado"
+
+        indice_mapa = next((i for i, entry in enumerate(estado_jogador["mapa"]) if entry["q"] == q and entry["r"] == r), -1)
+        if indice_mapa < 0:
+            return False, "tropa_inexistente"
+
+        while len(estado_jogador["selecao"]) < 5:
+            estado_jogador["selecao"].append(None)
+
+        if estado_jogador["selecao"][indice_selecao] is not None:
+            return False, "slot_ocupado"
+
+        entry = estado_jogador["mapa"].pop(indice_mapa)
+        estado_jogador["selecao"][indice_selecao] = entry["carta"]
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         return True, "ok"
 
