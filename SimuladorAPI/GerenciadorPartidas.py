@@ -9,18 +9,25 @@ class GerenciadorPartidas:
         self.filas = {}
         self.partidas_ativas = {}
 
+    def _criar_fila(self):
+        return {
+            "partida_id": uuid.uuid4().hex,
+            "criado_em": time.time(),
+            "jogadores": [],
+            "pareada": False,
+        }
+
     def _obter_fila(self, set_escolhido):
         if set_escolhido not in self.filas:
-            self.filas[set_escolhido] = {
-                "partida_id": uuid.uuid4().hex,
-                "criado_em": time.time(),
-                "jogadores": [],
-                "pareada": False,
-            }
+            self.filas[set_escolhido] = self._criar_fila()
         return self.filas[set_escolhido]
 
     def entrar_na_fila(self, jogador, set_escolhido):
         fila = self._obter_fila(set_escolhido)
+        if fila.get("pareada"):
+            fila = self._criar_fila()
+            self.filas[set_escolhido] = fila
+
         fila["jogadores"].append(jogador)
         return {
             "status": "na_fila",
@@ -113,6 +120,9 @@ class GerenciadorPartidas:
         removeu_partida = len(jogadores_reais) == 0
         if removeu_partida:
             del self.partidas_ativas[partida_id]
+            for set_escolhido, fila in list(self.filas.items()):
+                if fila.get("partida_id") == partida_id:
+                    del self.filas[set_escolhido]
 
         return {
             "ok": True,

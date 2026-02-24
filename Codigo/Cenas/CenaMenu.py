@@ -21,7 +21,7 @@ servico_pareamento = ServidorPareamento()
 def TelaMenu(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill(obter_cor("fundo_menu"))
 
-    fonte_titulo = obter_fonte(70, negrito=True)
+    fonte_titulo = obter_fonte(70, negrito=False)
     titulo = fonte_titulo.render("TFT2", True, obter_cor("titulo"))
     TELA.blit(titulo, titulo.get_rect(center=(960, 220)))
 
