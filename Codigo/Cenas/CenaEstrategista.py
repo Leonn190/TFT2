@@ -4,6 +4,8 @@ from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, F
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 from Codigo.Paineis.Banco import Banco
 from Codigo.Paineis.Loja import Loja
+from Codigo.Paineis.Mapa import Mapa
+from Codigo.Paineis.Sinergias import Sinergias
 from Codigo.Server.Pareamento import ServidorPareamento
 from Codigo.Server.ServerEstrategista import ServidorEstrategista
 from Codigo.Telas.Opcoes import InicializaTelaOpcoes, ProcessarEventosTelaOpcoes, TelaOpcoes
@@ -32,11 +34,12 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         return
 
     fonte = obter_fonte(30)
-    TELA.blit(fonte.render(f"Partida: {partida.partida_id}", True, (236, 236, 236)), (40, 24))
     TELA.blit(fonte.render(f"Vida: {jogador_local.vida}", True, (236, 236, 236)), (40, 62))
     TELA.blit(fonte.render(f"Ouro: {jogador_local.ouro}", True, (236, 218, 126)), (230, 62))
     TELA.blit(fonte.render(f"Ping: {partida.ping_ms}ms", True, (184, 214, 242)), (380, 62))
 
+    Parametros["Mapa"].desenhar(TELA, jogador_local.mapa, mostrar_grade=Parametros["Banco"].drag is not None, carta_drag=Parametros["Banco"].drag["carta"] if Parametros["Banco"].drag else None)
+    Parametros["Sinergias"].desenhar(TELA, jogador_local.sinergias)
     Parametros["Banco"].desenhar(TELA, jogador_local.banco)
     Parametros["Loja"].desenhar(TELA, jogador_local.loja)
 
@@ -55,6 +58,8 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
         "MostrarOpcoes": False,
         "Banco": Banco(),
         "Loja": Loja(),
+        "Mapa": Mapa(),
+        "Sinergias": Sinergias(),
     }
 
 
@@ -115,8 +120,13 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     servidor_estrategista.comprar_carta_loja(partida, jogador_local.player_id, acao_loja["indice"])
 
             acao_banco = Parametros["Banco"].processar_evento(evento, jogador_local.banco, Parametros["Loja"].rect)
-            if acao_banco and acao_banco["acao"] == "vender":
-                servidor_estrategista.vender_do_banco(partida, jogador_local.player_id, acao_banco["indice"])
+            if acao_banco:
+                if acao_banco["acao"] == "vender":
+                    servidor_estrategista.vender_do_banco(partida, jogador_local.player_id, acao_banco["indice"])
+                elif acao_banco["acao"] == "soltar":
+                    pos_hex = Parametros["Mapa"].slot_para_posicao(acao_banco["pos"])
+                    if pos_hex is not None:
+                        servidor_estrategista.posicionar_do_banco(partida, jogador_local.player_id, acao_banco["indice"], pos_hex[0], pos_hex[1])
 
         partida = Parametros.get("PartidaAtual")
         if partida is not None and acumulador_sync_ms >= partida.ping_ms:

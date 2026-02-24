@@ -134,5 +134,60 @@ class Ativador:
         self._devolver_ao_estoque(partida_id, carta)
         return True, "ok"
 
+    @staticmethod
+    def _eh_adjacente(origem, destino):
+        q1, r1 = origem
+        q2, r2 = destino
+        deltas_validos = {(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)}
+        return (q2 - q1, r2 - r1) in deltas_validos
+
+    @staticmethod
+    def _em_reta_hex(posicoes):
+        if len(posicoes) <= 2:
+            return True
+        qs = {q for q, _ in posicoes}
+        rs = {r for _, r in posicoes}
+        ss = {q + r for q, r in posicoes}
+        return len(qs) == 1 or len(rs) == 1 or len(ss) == 1
+
+    @staticmethod
+    def _calcular_sinergias(mapa):
+        contador = {}
+        for entry in mapa:
+            sinergia = entry["carta"].get("sinergia", "-")
+            contador[sinergia] = contador.get(sinergia, 0) + 1
+        return [{"sinergia": nome, "quantidade": qtd} for nome, qtd in sorted(contador.items(), key=lambda item: (-item[1], item[0]))]
+
+    def posicionar_do_banco(self, partida, player_id, indice_banco, q, r):
+        self._inicializar_partida(partida)
+        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+
+        if indice_banco < 0 or indice_banco >= len(estado_jogador["banco"]):
+            return False, "indice_invalido"
+
+        if any(entry["q"] == q and entry["r"] == r for entry in estado_jogador["mapa"]):
+            return False, "slot_ocupado"
+
+        carta = estado_jogador["banco"][indice_banco]
+        sinergia = carta.get("sinergia", "-")
+        entradas_mesma_sinergia = [entry for entry in estado_jogador["mapa"] if entry["carta"].get("sinergia", "-") == sinergia]
+
+        if estado_jogador["mapa"]:
+            if not any(self._eh_adjacente((entry["q"], entry["r"]), (q, r)) and entry["carta"].get("sinergia", "-") == sinergia for entry in estado_jogador["mapa"]):
+                return False, "sinergia_desconectada"
+
+        if entradas_mesma_sinergia:
+            if not any(self._eh_adjacente((entry["q"], entry["r"]), (q, r)) for entry in entradas_mesma_sinergia):
+                return False, "nao_adj_mesma_sinergia"
+
+            posicoes = [(entry["q"], entry["r"]) for entry in entradas_mesma_sinergia] + [(q, r)]
+            if not self._em_reta_hex(posicoes):
+                return False, "fora_da_reta"
+
+        estado_jogador["banco"].pop(indice_banco)
+        estado_jogador["mapa"].append({"carta": carta, "q": q, "r": r})
+        estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
+        return True, "ok"
+
 
 ativador_global = Ativador()

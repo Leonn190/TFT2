@@ -34,6 +34,7 @@ class Banco:
             self.drag = None
             if area_loja_rect.collidepoint(drop_pos):
                 return {"acao": "vender", "indice": indice}
+            return {"acao": "soltar", "indice": indice, "pos": drop_pos}
 
         return None
 
