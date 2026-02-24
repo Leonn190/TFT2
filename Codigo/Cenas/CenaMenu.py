@@ -5,7 +5,12 @@ from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, E
 from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 from Codigo.Prefabs.Botao import Botao
 from Codigo.Server.Pareamento import ServidorPareamento
-from Codigo.Telas.Config import InicializaTelaConfig, TelaConfig, aplicar_configuracoes
+from Codigo.Telas.Config import (
+    InicializaTelaConfig,
+    TelaConfig,
+    aplicar_configuracoes,
+    aplicar_configuracoes_em_tempo_real,
+)
 from Codigo.Telas.TelaEscolhaSet import InicializaTelaEscolhaSet, TelaEscolhaSet
 from Codigo.Telas.TelaPareamento import InicializaTelaPareamento, TelaPareamento
 
@@ -40,6 +45,7 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
         "EscolhaSet": InicializaTelaEscolhaSet(CONFIG),
         "Pareamento": InicializaTelaPareamento(),
         "Config": InicializaTelaConfig(CONFIG),
+        "ConfigOriginal": {},
         "SetsSelecionados": [],
         "ResultadoPareamento": {},
         "Ticket": None,
@@ -65,6 +71,14 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 elif Parametros["BotoesBase"]["Configuracoes"].atualizar_evento(evento):
                     Parametros["ModoMenu"] = "config"
                     Parametros["TelaAtiva"] = TelaConfig
+                    Parametros["ConfigOriginal"] = {
+                        "Volume": CONFIG["Volume"],
+                        "Claridade": CONFIG["Claridade"],
+                        "FPS": CONFIG["FPS"],
+                        "MostrarFPS": CONFIG["MostrarFPS"],
+                        "MostrarPing": CONFIG["MostrarPing"],
+                        "Mudo": CONFIG["Mudo"],
+                    }
 
                 elif Parametros["BotoesBase"]["Sair"].atualizar_evento(evento):
                     ESTADOS["Menu"] = False
@@ -79,7 +93,10 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 for alavanca in config_tela["Alavancas"].values():
                     alavanca.atualizar_evento(evento)
 
+                aplicar_configuracoes_em_tempo_real(CONFIG, config_tela)
+
                 if config_tela["BotaoCancelar"].atualizar_evento(evento):
+                    CONFIG.update(Parametros["ConfigOriginal"])
                     Parametros["ModoMenu"] = "base"
                     Parametros["TelaAtiva"] = TelaMenu
                     Parametros["Config"] = InicializaTelaConfig(CONFIG)
@@ -118,11 +135,14 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
 
                     Parametros["SetsSelecionados"] = sets_escolhidos
                     Parametros["Ticket"] = tickets
+                    Parametros["ResultadoPareamento"] = {}
                     Parametros["ModoMenu"] = "pareamento"
                     Parametros["TelaAtiva"] = TelaPareamento
 
             elif Parametros["ModoMenu"] == "pareamento":
                 if Parametros["Pareamento"]["BotaoCancelar"].atualizar_evento(evento):
+                    for set_nome in Parametros["SetsSelecionados"]:
+                        servico_pareamento.cancelar_fila(set_nome, player_id="local-1")
                     Parametros["ModoMenu"] = "escolha_set"
                     Parametros["TelaAtiva"] = TelaEscolhaSet
                     Parametros["ResultadoPareamento"] = {}

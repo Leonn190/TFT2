@@ -57,24 +57,21 @@ class Botao:
 
     def _desenhar_selecao(self, tela):
         mouse_pos = pygame.mouse.get_pos()
-        cor = self.cor_hover if self.rect.collidepoint(mouse_pos) else self.cor_base
+        em_hover = self.rect.collidepoint(mouse_pos)
+
+        if self.ativo:
+            cor = self.cor_hover
+        elif em_hover:
+            cor = (74, 112, 186)
+        else:
+            cor = self.cor_base
 
         pygame.draw.rect(tela, cor, self.rect, border_radius=12)
         pygame.draw.rect(tela, self.cor_borda, self.rect, width=3, border_radius=12)
 
         texto_render = self.fonte.render(self.texto, True, self.cor_texto)
-        texto_rect = texto_render.get_rect(midleft=(self.rect.x + 28, self.rect.centery))
+        texto_rect = texto_render.get_rect(center=self.rect.center)
         tela.blit(texto_render, texto_rect)
-
-        tamanho_box = 34
-        box = pygame.Rect(0, 0, tamanho_box, tamanho_box)
-        box.midright = (self.rect.right - 26, self.rect.centery)
-        pygame.draw.rect(tela, (238, 238, 238), box, border_radius=6)
-        pygame.draw.rect(tela, self.cor_borda, box, width=2, border_radius=6)
-
-        if self.ativo:
-            pygame.draw.line(tela, (32, 120, 54), (box.left + 8, box.centery), (box.left + 15, box.bottom - 9), 4)
-            pygame.draw.line(tela, (32, 120, 54), (box.left + 15, box.bottom - 9), (box.right - 7, box.top + 8), 4)
 
     def atualizar_evento(self, evento):
         clicou = (

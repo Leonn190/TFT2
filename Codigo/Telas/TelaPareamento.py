@@ -28,7 +28,6 @@ def TelaPareamento(TELA, ESTADOS, CONFIG, INFO, Parametros):
         f"Sets: {texto_sets}",
         f"Tempo de espera: {tempo:.1f}s",
         f"Jogadores: {jogadores}/{tamanho}",
-        "Se não completar em 20s, bots entram automaticamente.",
     ]
 
     y = 290
