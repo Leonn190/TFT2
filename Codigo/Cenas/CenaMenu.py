@@ -2,6 +2,7 @@ import pygame
 
 from Codigo.Classes.Player import Player
 from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, Escurecer
+from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 from Codigo.Prefabs.Botao import Botao
 from Codigo.Server.Pareamento import ServidorPareamento
 from Codigo.Telas.TelaEscolhaSet import InicializaTelaEscolhaSet, TelaEscolhaSet
@@ -12,10 +13,10 @@ servico_pareamento = ServidorPareamento()
 
 
 def TelaMenu(TELA, ESTADOS, CONFIG, INFO, Parametros):
-    TELA.fill((22, 26, 44))
+    TELA.fill(obter_cor("fundo_menu"))
 
-    fonte_titulo = pygame.font.SysFont("arial", 70, bold=True)
-    titulo = fonte_titulo.render("TFT2", True, (248, 248, 248))
+    fonte_titulo = obter_fonte(70, negrito=True)
+    titulo = fonte_titulo.render("TFT2", True, obter_cor("titulo"))
     TELA.blit(titulo, titulo.get_rect(center=(960, 220)))
 
     Parametros["BotoesBase"]["Jogar"].desenhar(TELA)

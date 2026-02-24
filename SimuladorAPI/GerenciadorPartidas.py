@@ -1,7 +1,7 @@
 import time
 import uuid
 
-from Codigo.Classes.Bot import Bot
+from SimuladorAPI.Bot import BotSimulado
 
 
 class GerenciadorPartidas:
@@ -11,6 +11,7 @@ class GerenciadorPartidas:
     def _obter_fila(self, set_escolhido):
         if set_escolhido not in self.filas:
             self.filas[set_escolhido] = {
+                "partida_id": uuid.uuid4().hex,
                 "criado_em": time.time(),
                 "jogadores": [],
                 "pareada": False,
@@ -23,6 +24,7 @@ class GerenciadorPartidas:
         return {
             "status": "na_fila",
             "set_escolhido": set_escolhido,
+            "partida_id": fila["partida_id"],
             "jogadores_na_fila": len(fila["jogadores"]),
         }
 
@@ -37,7 +39,7 @@ class GerenciadorPartidas:
             faltantes = tamanho_partida - len(fila["jogadores"])
             for indice in range(max(0, faltantes)):
                 fila["jogadores"].append(
-                    Bot(
+                    BotSimulado(
                         player_id=f"bot-{uuid.uuid4().hex[:8]}",
                         nome=f"Bot {indice + 1}",
                         set_escolhido=set_escolhido,
@@ -48,6 +50,7 @@ class GerenciadorPartidas:
         return {
             "status": "partida_encontrada" if fila["pareada"] else "buscando",
             "set_escolhido": set_escolhido,
+            "partida_id": fila["partida_id"],
             "tempo_espera": round(tempo_em_fila, 1),
             "jogadores_na_fila": len(fila["jogadores"]),
             "jogadores": [jogador.para_json() for jogador in fila["jogadores"]],

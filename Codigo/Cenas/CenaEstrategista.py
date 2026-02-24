@@ -1,10 +1,11 @@
 import pygame
 
 from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, Escurecer, FecharIris
+from Codigo.Modulos.GeradoresVisuais import obter_cor
 
 
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
-    TELA.fill((32, 58, 38))
+    TELA.fill(obter_cor("fundo_estrategista"))
 
 
 def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
