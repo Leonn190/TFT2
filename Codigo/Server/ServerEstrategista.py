@@ -1,0 +1,18 @@
+from SimuladorAPI.Ativador import ativador_global
+
+
+class ServidorEstrategista:
+    def sincronizar_partida(self, partida, player_local_id="local-1"):
+        return ativador_global.sincronizar_partida(partida, player_local_id=player_local_id)
+
+    def definir_ping(self, ping_ms):
+        ativador_global.definir_ping(ping_ms)
+
+    def comprar_carta_loja(self, partida, player_id, indice_loja):
+        return ativador_global.comprar_carta_loja(partida, player_id, indice_loja)
+
+    def roletar_loja(self, partida, player_id):
+        return ativador_global.roletar_loja(partida, player_id)
+
+    def vender_do_banco(self, partida, player_id, indice_banco):
+        return ativador_global.vender_do_banco(partida, player_id, indice_banco)

@@ -5,6 +5,8 @@ class Partida:
         self.tamanho_partida = tamanho_partida
         self.jogadores = []
         self.status = "buscando"
+        self.ping_ms = 0
+        self.estoque_compartilhado = {}
 
     def adicionar_jogador(self, jogador):
         if jogador.player_id not in [existente.player_id for existente in self.jogadores]:
@@ -21,4 +23,6 @@ class Partida:
             "tamanho_partida": self.tamanho_partida,
             "jogadores_na_partida": len(self.jogadores),
             "jogadores": [jogador.para_json() for jogador in self.jogadores],
+            "ping_ms": self.ping_ms,
+            "estoque_compartilhado": self.estoque_compartilhado,
         }
