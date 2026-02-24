@@ -1,4 +1,9 @@
-import pygame, math
+import math
+import pygame
+
+GerouSurface = False
+surface = None
+
 
 def Clarear(tela, Info, cor=(0, 0, 0), velocidade=3):
     """
@@ -15,6 +20,7 @@ def Clarear(tela, Info, cor=(0, 0, 0), velocidade=3):
         camada.fill((*cor, alpha))
         tela.blit(camada, (0, 0))
 
+
 def Escurecer(tela, Info, cor=(0, 0, 0), velocidade=3, fps=100):
     """
     Escurece a tela até Info["Escuro"] chegar a 100.
@@ -28,7 +34,6 @@ def Escurecer(tela, Info, cor=(0, 0, 0), velocidade=3, fps=100):
         if Info["Escuro"] > 100:
             Info["Escuro"] = 100
 
-        # Redesenhar camada
         alpha = int((Info["Escuro"] / 100) * 255)
         camada = pygame.Surface((largura, altura)).convert_alpha()
         camada.fill((*cor, alpha))
@@ -36,6 +41,7 @@ def Escurecer(tela, Info, cor=(0, 0, 0), velocidade=3, fps=100):
         tela.blit(camada, (0, 0))
         pygame.display.update()
         clock.tick(fps)
+
 
 def FecharIris(tela, Info, cor=(0, 0, 0), velocidade=3, fps=100, borda_suave=0):
     """
@@ -49,45 +55,62 @@ def FecharIris(tela, Info, cor=(0, 0, 0), velocidade=3, fps=100, borda_suave=0):
     w, h = tela.get_size()
     cx, cy = w // 2, h // 2
 
-    # raio máximo: distância ao canto mais distante (garante cobertura total)
     max_radius = int(math.hypot(w * 0.5, h * 0.5))
 
-    # garante a chave
     if "Escuro" not in Info:
         Info["Escuro"] = 0
 
     while Info["Escuro"] < 100:
-        # avança progresso (0..100)
         Info["Escuro"] += velocidade
         if Info["Escuro"] > 100:
             Info["Escuro"] = 100
 
-        # 0% => raio máximo (nada escuro) ; 100% => raio 0 (tela toda escura)
         t = Info["Escuro"] / 100.0
         r = max(0, int(round(max_radius * (1.0 - t))))
 
-        # overlay com alpha por pixel
         overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-        # todo o overlay preto opaco
         overlay.fill((*cor, 255))
 
-        # "fura" um círculo transparente no centro (área visível)
         pygame.draw.circle(overlay, (0, 0, 0, 0), (cx, cy), r)
 
-        # opcional: borda suave (feather) para o círculo
         if borda_suave > 0 and r > 0:
-            # desenha alguns anéis com alpha crescente para suavizar a borda
             steps = max(4, min(24, borda_suave // 2))
             for i in range(1, steps + 1):
                 rr = r + i
-                # alpha cresce do 0 (no limite interno) até ~200
                 a = int(200 * (i / steps))
                 pygame.draw.circle(overlay, (*cor, a), (cx, cy), rr, width=1)
 
-        # aplica na tela atual (sem redesenhar o mundo, igual ao Escurecer)
         tela.blit(overlay, (0, 0))
         pygame.display.update()
         clock.tick(fps)
 
-def AplicarClaridade():
-    pass
+
+def AplicarClaridade(tela, claridade):
+    global GerouSurface, surface
+
+    if GerouSurface is False or surface is None or surface.get_size() != tela.get_size():
+        surface = pygame.Surface(tela.get_size())
+        surface = surface.convert_alpha()
+        GerouSurface = True
+
+    if claridade == 75:
+        return
+
+    if claridade < 75:
+        intensidade = int((75 - claridade) / 50 * 50)
+        surface.fill((0, 0, 0, intensidade))
+    else:
+        intensidade = int((claridade - 75) / 25 * 70)
+        surface.fill((255, 255, 255, intensidade))
+
+    tela.blit(surface, (0, 0))
+
+
+def DesenharFPS(tela, relogio, config):
+    if not config.get("MostrarFPS", False):
+        return
+
+    fonte = pygame.font.Font(None, 28)
+    fps = int(relogio.get_fps())
+    texto = fonte.render(f"FPS: {fps}", True, (255, 255, 255))
+    tela.blit(texto, (10, 10))
