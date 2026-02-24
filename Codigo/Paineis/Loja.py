@@ -6,7 +6,7 @@ from Codigo.Prefabs.Botao import Botao
 
 class Loja:
     def __init__(self, largura_tela=1920, altura_tela=1080):
-        self.rect = pygame.Rect(int(largura_tela * 0.71), int(altura_tela * 0.67), int(largura_tela * 0.27), int(altura_tela * 0.30))
+        self.rect = pygame.Rect(int(largura_tela * 0.71), int(altura_tela * 0.73), int(largura_tela * 0.27), int(altura_tela * 0.24))
         self.fonte_titulo = obter_fonte(30, negrito=True)
         self.fonte_carta = obter_fonte(21)
         self.botao_roletar = Botao(self.rect.x + 16, self.rect.y + self.rect.height - 78, self.rect.width - 32, 58, "Roletar (2)")
