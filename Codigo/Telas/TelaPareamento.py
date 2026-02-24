@@ -1,5 +1,4 @@
-import pygame
-
+from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 from Codigo.Prefabs.Botao import Botao
 
 
@@ -10,12 +9,12 @@ def InicializaTelaPareamento():
 
 
 def TelaPareamento(TELA, ESTADOS, CONFIG, INFO, Parametros):
-    TELA.fill((18, 24, 40))
+    TELA.fill(obter_cor("fundo_pareamento"))
 
-    fonte_titulo = pygame.font.SysFont("arial", 56, bold=True)
-    fonte_texto = pygame.font.SysFont("arial", 34)
+    fonte_titulo = obter_fonte(56, negrito=True)
+    fonte_texto = obter_fonte(34)
 
-    titulo = fonte_titulo.render("Pareamento", True, (244, 244, 244))
+    titulo = fonte_titulo.render("Pareamento", True, obter_cor("titulo"))
     TELA.blit(titulo, titulo.get_rect(center=(960, 150)))
 
     dados = Parametros.get("ResultadoPareamento", {})
@@ -33,7 +32,7 @@ def TelaPareamento(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     y = 290
     for linha in linhas:
-        texto = fonte_texto.render(linha, True, (210, 220, 238))
+        texto = fonte_texto.render(linha, True, obter_cor("texto"))
         TELA.blit(texto, texto.get_rect(center=(960, y)))
         y += 70
 

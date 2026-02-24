@@ -1,9 +1,11 @@
 import sys
+
 import pygame
 
-from Codigo.Cenas.CenaMenu import MenuLoop
-from Codigo.Cenas.CenaEstrategista import EstrategistaLoop
 from Codigo.Cenas.CenaBatalha import BatalhaLoop
+from Codigo.Cenas.CenaEstrategista import EstrategistaLoop
+from Codigo.Cenas.CenaMenu import MenuLoop
+from Codigo.Telas.TelaEscolhaSet import listar_sets_existentes
 
 
 pygame.init()
@@ -16,18 +18,18 @@ pygame.display.set_caption("TFT2")
 
 RELOGIO = pygame.time.Clock()
 
+sets_encontrados = listar_sets_existentes()
+
 CONFIG = {
     "FPS": 120,
     "Volume": 0.5,
     "Claridade": 75,
     "Mudo": False,
     "MostrarFPS": False,
-    "SetsDisponiveis": ["Set 10", "Set 11", "Set 12"],
+    "SetsDisponiveis": sets_encontrados or ["Set 10", "Set 11", "Set 12"],
 }
 
-INFO = {
-    "Escuro": 100
-}
+INFO = {"Escuro": 100}
 
 # Dicionário que controla qual cena está ativa
 ESTADOS = {
