@@ -7,6 +7,7 @@ from SimuladorAPI.Bot import Bot
 class GerenciadorPartidas:
     def __init__(self):
         self.filas = {}
+        self.partidas_ativas = {}
 
     def _obter_fila(self, set_escolhido):
         if set_escolhido not in self.filas:
@@ -47,6 +48,12 @@ class GerenciadorPartidas:
                 )
             fila["pareada"] = True
 
+        if fila["pareada"]:
+            self.partidas_ativas[fila["partida_id"]] = {
+                "set_escolhido": set_escolhido,
+                "jogadores": [jogador.para_json() for jogador in fila["jogadores"]],
+            }
+
         return {
             "status": "partida_encontrada" if fila["pareada"] else "buscando",
             "set_escolhido": set_escolhido,
@@ -55,6 +62,37 @@ class GerenciadorPartidas:
             "jogadores_na_fila": len(fila["jogadores"]),
             "jogadores": [jogador.para_json() for jogador in fila["jogadores"]],
             "tamanho_partida": tamanho_partida,
+        }
+
+    def registrar_saida_da_partida(self, partida_id, player_id):
+        partida = self.partidas_ativas.get(partida_id)
+        if not partida:
+            return {
+                "ok": False,
+                "status": "partida_inexistente",
+                "partida_id": partida_id,
+            }
+
+        jogadores = partida["jogadores"]
+        for jogador in jogadores:
+            if jogador["player_id"] == player_id:
+                jogador["vida"] = 0
+
+        jogadores_reais = [
+            jogador
+            for jogador in jogadores
+            if not jogador.get("is_bot", False) and jogador.get("categoria") != "simulado"
+        ]
+
+        removeu_partida = len(jogadores_reais) <= 1
+        if removeu_partida:
+            del self.partidas_ativas[partida_id]
+
+        return {
+            "ok": True,
+            "status": "saida_registrada",
+            "partida_id": partida_id,
+            "partida_apagada": removeu_partida,
         }
 
 

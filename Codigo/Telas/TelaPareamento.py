@@ -21,10 +21,11 @@ def TelaPareamento(TELA, ESTADOS, CONFIG, INFO, Parametros):
     tempo = dados.get("tempo_espera", 0)
     jogadores = dados.get("jogadores_na_fila", 0)
     tamanho = dados.get("tamanho_partida", 10)
-    set_escolhido = Parametros.get("SetSelecionado", "-")
+    sets_escolhidos = Parametros.get("SetsSelecionados", [])
+    texto_sets = ", ".join(sets_escolhidos) if sets_escolhidos else "-"
 
     linhas = [
-        f"Set: {set_escolhido}",
+        f"Sets: {texto_sets}",
         f"Tempo de espera: {tempo:.1f}s",
         f"Jogadores: {jogadores}/{tamanho}",
         "Se não completar em 20s, bots entram automaticamente.",

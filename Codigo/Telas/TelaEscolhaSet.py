@@ -18,21 +18,23 @@ def listar_sets_existentes(caminho_sets="Recursos/Sets"):
 
 def InicializaTelaEscolhaSet(CONFIG):
     botoes_sets = []
-    largura = 320
+    largura = 380
     altura = 80
-    espaco = 24
+    espaco = 20
     x = (1920 - largura) // 2
-    y_inicial = 260
+    y_inicial = 250
 
     for indice, set_nome in enumerate(CONFIG.get("SetsDisponiveis", [])):
         y = y_inicial + indice * (altura + espaco)
-        botoes_sets.append(Botao(x, y, largura, altura, set_nome))
+        botoes_sets.append(Botao(x, y, largura, altura, set_nome, estilo="selecao"))
 
     botao_voltar = Botao(60, 920, 220, 70, "Voltar")
+    botao_buscar = Botao(1640, 920, 220, 70, "Buscar")
 
     return {
         "BotoesSets": botoes_sets,
         "BotaoVoltar": botao_voltar,
+        "BotaoBuscar": botao_buscar,
     }
 
 
@@ -42,8 +44,8 @@ def TelaEscolhaSet(TELA, ESTADOS, CONFIG, INFO, Parametros):
     fonte_titulo = obter_fonte(58, negrito=True)
     fonte_subtitulo = obter_fonte(30)
 
-    titulo = fonte_titulo.render("Escolha o Set", True, obter_cor("titulo"))
-    subtitulo = fonte_subtitulo.render("Um botão para cada set disponível", True, obter_cor("subtitulo"))
+    titulo = fonte_titulo.render("Escolha os Sets", True, obter_cor("titulo"))
+    subtitulo = fonte_subtitulo.render("Selecione um ou mais sets e clique em Buscar", True, obter_cor("subtitulo"))
 
     TELA.blit(titulo, titulo.get_rect(center=(960, 140)))
     TELA.blit(subtitulo, subtitulo.get_rect(center=(960, 200)))
@@ -52,3 +54,4 @@ def TelaEscolhaSet(TELA, ESTADOS, CONFIG, INFO, Parametros):
         botao.desenhar(TELA)
 
     Parametros["EscolhaSet"]["BotaoVoltar"].desenhar(TELA)
+    Parametros["EscolhaSet"]["BotaoBuscar"].desenhar(TELA)
