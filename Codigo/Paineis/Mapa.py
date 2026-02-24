@@ -47,6 +47,16 @@ class Mapa:
             return None
         return melhor["q"], melhor["r"]
 
+    def tropa_por_posicao(self, pos, cartas_mapa):
+        pos_hex = self.slot_para_posicao(pos)
+        if pos_hex is None:
+            return None
+        q, r = pos_hex
+        for entry in cartas_mapa:
+            if entry["q"] == q and entry["r"] == r:
+                return entry
+        return None
+
     def desenhar(self, tela, cartas_mapa, mostrar_grade=False, carta_drag=None):
         pygame.draw.rect(tela, (18, 45, 30), self.rect, border_radius=16)
         pygame.draw.rect(tela, (74, 128, 98), self.rect, width=2, border_radius=16)
@@ -66,7 +76,11 @@ class Mapa:
             pygame.draw.polygon(tela, (72, 104, 84), poly)
             pygame.draw.polygon(tela, (160, 198, 173), poly, width=2)
             texto_nome = self.fonte_carta.render(carta.get("nome", "Carta"), True, (245, 245, 245))
-            texto_sin = self.fonte_carta.render(carta.get("sinergia", "-"), True, (224, 233, 217))
+            sinergia = carta.get("sinergia", "-")
+            sinergia_secundaria = carta.get("sinergia_secundaria")
+            if sinergia_secundaria:
+                sinergia = f"{sinergia}/{sinergia_secundaria}"
+            texto_sin = self.fonte_carta.render(sinergia, True, (224, 233, 217))
             tela.blit(texto_nome, (slot["centro"][0] - texto_nome.get_width() // 2, slot["centro"][1] - 18))
             tela.blit(texto_sin, (slot["centro"][0] - texto_sin.get_width() // 2, slot["centro"][1] + 2))
 

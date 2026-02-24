@@ -19,3 +19,6 @@ class ServidorEstrategista:
 
     def posicionar_do_banco(self, partida, player_id, indice_banco, q, r):
         return ativador_global.posicionar_do_banco(partida, player_id, indice_banco, q, r)
+
+    def mover_mapa_para_selecao(self, partida, player_id, q, r, indice_selecao):
+        return ativador_global.mover_mapa_para_selecao(partida, player_id, q, r, indice_selecao)
