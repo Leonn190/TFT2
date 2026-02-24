@@ -53,6 +53,10 @@ def obter_configuracoes_da_tela(parametros_config):
     }
 
 
+def aplicar_configuracoes_em_tempo_real(CONFIG, parametros_config):
+    CONFIG.update(obter_configuracoes_da_tela(parametros_config))
+
+
 def aplicar_configuracoes(CONFIG, parametros_config):
     novas_configs = obter_configuracoes_da_tela(parametros_config)
     CONFIG.update(novas_configs)

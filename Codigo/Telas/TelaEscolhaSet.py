@@ -18,14 +18,16 @@ def listar_sets_existentes(caminho_sets="Recursos/Sets"):
 
 def InicializaTelaEscolhaSet(CONFIG):
     botoes_sets = []
-    largura = 380
+    largura = 360
     altura = 80
     espaco = 20
-    x = (1920 - largura) // 2
-    y_inicial = 250
+    total_sets = len(CONFIG.get("SetsDisponiveis", []))
+    largura_total = total_sets * largura + max(0, total_sets - 1) * espaco
+    x_inicial = (1920 - largura_total) // 2
+    y = 330
 
     for indice, set_nome in enumerate(CONFIG.get("SetsDisponiveis", [])):
-        y = y_inicial + indice * (altura + espaco)
+        x = x_inicial + indice * (largura + espaco)
         botoes_sets.append(Botao(x, y, largura, altura, set_nome, estilo="selecao"))
 
     botao_voltar = Botao(60, 920, 220, 70, "Voltar")
@@ -41,7 +43,7 @@ def InicializaTelaEscolhaSet(CONFIG):
 def TelaEscolhaSet(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill(obter_cor("fundo_menu"))
 
-    fonte_titulo = obter_fonte(58, negrito=True)
+    fonte_titulo = obter_fonte(52, negrito=False)
     fonte_subtitulo = obter_fonte(30)
 
     titulo = fonte_titulo.render("Escolha os Sets", True, obter_cor("titulo"))

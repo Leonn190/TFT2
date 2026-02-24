@@ -2,7 +2,12 @@ import pygame
 
 from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 from Codigo.Prefabs.Botao import Botao
-from Codigo.Telas.Config import InicializaTelaConfig, TelaConfig, aplicar_configuracoes
+from Codigo.Telas.Config import (
+    InicializaTelaConfig,
+    TelaConfig,
+    aplicar_configuracoes,
+    aplicar_configuracoes_em_tempo_real,
+)
 
 
 def InicializaTelaOpcoes(CONFIG):
@@ -14,6 +19,7 @@ def InicializaTelaOpcoes(CONFIG):
             "Sair": Botao(760, 600, 400, 90, "Sair"),
         },
         "Config": InicializaTelaConfig(CONFIG),
+        "ConfigOriginal": {},
     }
 
 
@@ -38,6 +44,7 @@ def ProcessarEventosTelaOpcoes(evento, ESTADOS, CONFIG, INFO, Parametros, ao_sai
 
     if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
         if opcoes["Modo"] == "config":
+            CONFIG.update(opcoes["ConfigOriginal"])
             opcoes["Modo"] = "base"
             opcoes["Config"] = InicializaTelaConfig(CONFIG)
             return False
@@ -51,7 +58,10 @@ def ProcessarEventosTelaOpcoes(evento, ESTADOS, CONFIG, INFO, Parametros, ao_sai
         for alavanca in config_tela["Alavancas"].values():
             alavanca.atualizar_evento(evento)
 
+        aplicar_configuracoes_em_tempo_real(CONFIG, config_tela)
+
         if config_tela["BotaoCancelar"].atualizar_evento(evento):
+            CONFIG.update(opcoes["ConfigOriginal"])
             opcoes["Modo"] = "base"
             opcoes["Config"] = InicializaTelaConfig(CONFIG)
 
@@ -67,6 +77,14 @@ def ProcessarEventosTelaOpcoes(evento, ESTADOS, CONFIG, INFO, Parametros, ao_sai
 
     if opcoes["Botoes"]["Configuracoes"].atualizar_evento(evento):
         opcoes["Modo"] = "config"
+        opcoes["ConfigOriginal"] = {
+            "Volume": CONFIG["Volume"],
+            "Claridade": CONFIG["Claridade"],
+            "FPS": CONFIG["FPS"],
+            "MostrarFPS": CONFIG["MostrarFPS"],
+            "MostrarPing": CONFIG["MostrarPing"],
+            "Mudo": CONFIG["Mudo"],
+        }
         return False
 
     if opcoes["Botoes"]["Sair"].atualizar_evento(evento):

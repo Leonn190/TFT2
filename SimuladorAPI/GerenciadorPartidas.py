@@ -64,6 +64,33 @@ class GerenciadorPartidas:
             "tamanho_partida": tamanho_partida,
         }
 
+    def cancelar_busca_fila(self, set_escolhido, player_id):
+        fila = self.filas.get(set_escolhido)
+        if not fila or fila.get("pareada"):
+            return {
+                "ok": False,
+                "status": "fila_inexistente",
+                "set_escolhido": set_escolhido,
+            }
+
+        fila["jogadores"] = [j for j in fila["jogadores"] if j.player_id != player_id]
+        if not fila["jogadores"]:
+            del self.filas[set_escolhido]
+            return {
+                "ok": True,
+                "status": "fila_cancelada",
+                "set_escolhido": set_escolhido,
+                "fila_reiniciada": True,
+            }
+
+        return {
+            "ok": True,
+            "status": "saida_fila_registrada",
+            "set_escolhido": set_escolhido,
+            "jogadores_na_fila": len(fila["jogadores"]),
+            "fila_reiniciada": False,
+        }
+
     def registrar_saida_da_partida(self, partida_id, player_id):
         partida = self.partidas_ativas.get(partida_id)
         if not partida:
@@ -74,9 +101,8 @@ class GerenciadorPartidas:
             }
 
         jogadores = partida["jogadores"]
-        for jogador in jogadores:
-            if jogador["player_id"] == player_id:
-                jogador["vida"] = 0
+        partida["jogadores"] = [j for j in jogadores if j["player_id"] != player_id]
+        jogadores = partida["jogadores"]
 
         jogadores_reais = [
             jogador
@@ -84,7 +110,7 @@ class GerenciadorPartidas:
             if not jogador.get("is_bot", False) and jogador.get("categoria") != "simulado"
         ]
 
-        removeu_partida = len(jogadores_reais) <= 1
+        removeu_partida = len(jogadores_reais) == 0
         if removeu_partida:
             del self.partidas_ativas[partida_id]
 
