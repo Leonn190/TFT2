@@ -212,8 +212,9 @@ class Ativador:
         if estado_jogador["selecao"][indice_selecao] is not None:
             return False, "slot_ocupado"
 
-        entry = estado_jogador["mapa"].pop(indice_mapa)
+        entry = estado_jogador["mapa"][indice_mapa]
         estado_jogador["selecao"][indice_selecao] = entry["carta"]
+        # A seleção apenas referencia a tropa escolhida; ela continua no mapa e nas sinergias.
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         return True, "ok"
 

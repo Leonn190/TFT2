@@ -6,7 +6,7 @@ import pygame
 CORES = {
     "fundo_menu": (22, 26, 44),
     "fundo_pareamento": (18, 24, 40),
-    "fundo_estrategista": (32, 58, 38),
+    "fundo_estrategista": (44, 46, 50),
     "titulo": (244, 244, 244),
     "texto": (210, 220, 238),
     "subtitulo": (180, 190, 212),
@@ -31,7 +31,8 @@ def obter_fonte(tamanho, negrito=False):
     if chave not in _CACHE_FONTES:
         if CAMINHO_FONTE_PADRAO.exists():
             fonte = pygame.font.Font(str(CAMINHO_FONTE_PADRAO), tamanho)
-            fonte.set_bold(negrito)
+            # Evita bold sintético na fonte customizada, que deixava títulos serrilhados/ilegíveis.
+            fonte.set_bold(False)
             _CACHE_FONTES[chave] = fonte
         else:
             _CACHE_FONTES[chave] = pygame.font.SysFont("arial", tamanho, bold=negrito)

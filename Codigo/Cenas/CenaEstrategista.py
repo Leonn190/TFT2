@@ -32,7 +32,7 @@ def _obter_jogador_por_id(partida, player_id):
 
 
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
-    TELA.fill((26, 52, 34))
+    TELA.fill((44, 46, 50))
 
     partida = Parametros.get("PartidaAtual")
     if partida is None:
@@ -48,7 +48,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     if CONFIG.get("MostrarPing", False):
         fonte_ping = obter_fonte(24)
-        TELA.blit(fonte_ping.render(f"Ping: {partida.ping_ms}ms", True, (184, 214, 242)), (10, 36))
+        TELA.blit(fonte_ping.render(f"Ping: {partida.ping_ms}ms", True, (196, 204, 216)), (10, 36))
 
     Parametros["Mapa"].desenhar(TELA, jogador_ativo.mapa, mostrar_grade=Parametros["Banco"].drag is not None, carta_drag=Parametros["Banco"].drag["carta"] if Parametros["Banco"].drag else None)
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
@@ -58,7 +58,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
     Parametros["Loja"].desenhar(TELA, jogador_ativo.loja)
 
     if jogador_ativo.player_id != "local-1":
-        aviso = obter_fonte(22, negrito=True).render(f"Visualizando: {jogador_ativo.nome}", True, (190, 212, 232))
+        aviso = obter_fonte(22, negrito=True).render(f"Visualizando: {jogador_ativo.nome}", True, (204, 210, 220))
         TELA.blit(aviso, (600, 62))
 
 
