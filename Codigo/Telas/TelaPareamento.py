@@ -1,0 +1,40 @@
+import pygame
+
+from Codigo.Prefabs.Botao import Botao
+
+
+def InicializaTelaPareamento():
+    return {
+        "BotaoCancelar": Botao(60, 920, 260, 70, "Cancelar"),
+    }
+
+
+def TelaPareamento(TELA, ESTADOS, CONFIG, INFO, Parametros):
+    TELA.fill((18, 24, 40))
+
+    fonte_titulo = pygame.font.SysFont("arial", 56, bold=True)
+    fonte_texto = pygame.font.SysFont("arial", 34)
+
+    titulo = fonte_titulo.render("Pareamento", True, (244, 244, 244))
+    TELA.blit(titulo, titulo.get_rect(center=(960, 150)))
+
+    dados = Parametros.get("ResultadoPareamento", {})
+    tempo = dados.get("tempo_espera", 0)
+    jogadores = dados.get("jogadores_na_fila", 0)
+    tamanho = dados.get("tamanho_partida", 10)
+    set_escolhido = Parametros.get("SetSelecionado", "-")
+
+    linhas = [
+        f"Set: {set_escolhido}",
+        f"Tempo de espera: {tempo:.1f}s",
+        f"Jogadores: {jogadores}/{tamanho}",
+        "Se não completar em 20s, bots entram automaticamente.",
+    ]
+
+    y = 290
+    for linha in linhas:
+        texto = fonte_texto.render(linha, True, (210, 220, 238))
+        TELA.blit(texto, texto.get_rect(center=(960, y)))
+        y += 70
+
+    Parametros["Pareamento"]["BotaoCancelar"].desenhar(TELA)
