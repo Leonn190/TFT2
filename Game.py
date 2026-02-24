@@ -22,6 +22,7 @@ CONFIG = {
     "Claridade": 75,
     "Mudo": False,
     "MostrarFPS": False,
+    "SetsDisponiveis": ["Set 10", "Set 11", "Set 12"],
 }
 
 INFO = {

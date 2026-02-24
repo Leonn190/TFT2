@@ -1,4 +1,5 @@
-class Bot:
+from Codigo.Classes.Bot import Bot
 
-    def __init__(self):
-        pass
+
+class BotSimulado(Bot):
+    pass
