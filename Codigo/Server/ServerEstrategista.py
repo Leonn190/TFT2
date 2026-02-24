@@ -16,3 +16,6 @@ class ServidorEstrategista:
 
     def vender_do_banco(self, partida, player_id, indice_banco):
         return ativador_global.vender_do_banco(partida, player_id, indice_banco)
+
+    def posicionar_do_banco(self, partida, player_id, indice_banco, q, r):
+        return ativador_global.posicionar_do_banco(partida, player_id, indice_banco, q, r)
