@@ -9,24 +9,23 @@ from Codigo.Cenas.CenaBatalha import BatalhaLoop
 pygame.init()
 
 # Tela principal do jogo
-TELA_LARGURA = 1280
-TELA_ALTURA = 720
+TELA_LARGURA = 1920
+TELA_ALTURA = 1080
 TELA = pygame.display.set_mode((TELA_LARGURA, TELA_ALTURA))
 pygame.display.set_caption("TFT2")
 
 RELOGIO = pygame.time.Clock()
 
 CONFIG = {
-    "FPS": 60,
+    "FPS": 120,
     "Volume": 0.5,
+    "Claridade": 75,
     "Mudo": False,
     "MostrarFPS": False,
 }
 
 INFO = {
-    "Carregado": True,
-    "Alvo": "Menu",
-    "Round": 1,
+
 }
 
 # Dicionário que controla qual cena está ativa
@@ -36,7 +35,6 @@ ESTADOS = {
     "Estrategista": False,
     "Batalha": False,
 }
-
 
 while ESTADOS["Rodando"]:
     if ESTADOS["Menu"]:
