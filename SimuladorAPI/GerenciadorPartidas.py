@@ -1,7 +1,7 @@
 import time
 import uuid
 
-from SimuladorAPI.Bot import BotSimulado
+from SimuladorAPI.Bot import Bot
 
 
 class GerenciadorPartidas:
@@ -39,7 +39,7 @@ class GerenciadorPartidas:
             faltantes = tamanho_partida - len(fila["jogadores"])
             for indice in range(max(0, faltantes)):
                 fila["jogadores"].append(
-                    BotSimulado(
+                    Bot(
                         player_id=f"bot-{uuid.uuid4().hex[:8]}",
                         nome=f"Bot {indice + 1}",
                         set_escolhido=set_escolhido,

@@ -19,6 +19,13 @@ class ServidorPareamento:
             )
         return self.partidas_espelhadas[partida_id]
 
+    def _detectar_categoria(self, jogador_json, jogador_local_id=None):
+        if jogador_json.get("is_bot", False):
+            return Player.CATEGORIA_BOT
+        if jogador_json.get("player_id") == jogador_local_id:
+            return Player.CATEGORIA_PLAYER
+        return Player.CATEGORIA_SIMULADO
+
     def _sincronizar_espelho(self, resposta_api, set_escolhido, jogador_entrada=None):
         partida = self._obter_ou_criar_partida(resposta_api, set_escolhido)
         partida.tamanho_partida = resposta_api.get("tamanho_partida", partida.tamanho_partida)
@@ -35,11 +42,14 @@ class ServidorPareamento:
                     nome=jogador_json["nome"],
                     set_escolhido=jogador_json.get("set_escolhido"),
                     is_bot=jogador_json.get("is_bot", False),
+                    categoria=jogador_json.get("categoria")
+                    or self._detectar_categoria(jogador_json, jogador_local_id="local-1"),
                 )
             )
 
         partida.atualizar_status(resposta_api.get("status", "buscando"))
         resposta_api["partida"] = partida.espelho()
+        resposta_api["partida_objeto"] = partida
         return resposta_api
 
     def entrar_fila(self, jogador, set_escolhido):

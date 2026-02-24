@@ -6,6 +6,7 @@ from Codigo.Cenas.CenaBatalha import BatalhaLoop
 from Codigo.Cenas.CenaEstrategista import EstrategistaLoop
 from Codigo.Cenas.CenaMenu import MenuLoop
 from Codigo.Telas.TelaEscolhaSet import listar_sets_existentes
+from ConfigFixa import carregar_configuracoes_fixas
 
 
 pygame.init()
@@ -20,14 +21,8 @@ RELOGIO = pygame.time.Clock()
 
 sets_encontrados = listar_sets_existentes()
 
-CONFIG = {
-    "FPS": 120,
-    "Volume": 0.5,
-    "Claridade": 75,
-    "Mudo": False,
-    "MostrarFPS": False,
-    "SetsDisponiveis": sets_encontrados or ["Set 10", "Set 11", "Set 12"],
-}
+CONFIG = carregar_configuracoes_fixas()
+CONFIG["SetsDisponiveis"] = sets_encontrados or ["Set 10", "Set 11", "Set 12"]
 
 INFO = {"Escuro": 100}
 

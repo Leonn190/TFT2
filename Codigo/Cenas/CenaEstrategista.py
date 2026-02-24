@@ -1,11 +1,20 @@
 import pygame
 
 from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, Escurecer, FecharIris
-from Codigo.Modulos.GeradoresVisuais import obter_cor
+from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 
 
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill(obter_cor("fundo_estrategista"))
+
+    partida = Parametros.get("PartidaAtual")
+    if partida is not None:
+        texto = obter_fonte(28).render(
+            f"Partida carregada: {partida.partida_id} ({len(partida.jogadores)} jogadores)",
+            True,
+            (236, 236, 236),
+        )
+        TELA.blit(texto, (40, 40))
 
 
 def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
@@ -14,6 +23,7 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
     return {
         "TelaAtiva": TelaEstrategista,
         "TelaBase": TelaEstrategista,
+        "PartidaAtual": INFO.get("PartidaAtual"),
     }
 
 

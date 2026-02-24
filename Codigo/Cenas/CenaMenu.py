@@ -5,6 +5,7 @@ from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, E
 from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 from Codigo.Prefabs.Botao import Botao
 from Codigo.Server.Pareamento import ServidorPareamento
+from Codigo.Telas.Config import InicializaTelaConfig, TelaConfig, aplicar_configuracoes
 from Codigo.Telas.TelaEscolhaSet import InicializaTelaEscolhaSet, TelaEscolhaSet
 from Codigo.Telas.TelaPareamento import InicializaTelaPareamento, TelaPareamento
 
@@ -20,6 +21,7 @@ def TelaMenu(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.blit(titulo, titulo.get_rect(center=(960, 220)))
 
     Parametros["BotoesBase"]["Jogar"].desenhar(TELA)
+    Parametros["BotoesBase"]["Configuracoes"].desenhar(TELA)
     Parametros["BotoesBase"]["Sair"].desenhar(TELA)
 
 
@@ -31,11 +33,13 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
         "TelaBase": TelaMenu,
         "ModoMenu": "base",
         "BotoesBase": {
-            "Jogar": Botao(760, 410, 400, 90, "Jogar"),
-            "Sair": Botao(760, 530, 400, 90, "Sair"),
+            "Jogar": Botao(760, 400, 400, 90, "Jogar"),
+            "Configuracoes": Botao(760, 510, 400, 90, "Configurações"),
+            "Sair": Botao(760, 620, 400, 90, "Sair"),
         },
         "EscolhaSet": InicializaTelaEscolhaSet(CONFIG),
         "Pareamento": InicializaTelaPareamento(),
+        "Config": InicializaTelaConfig(CONFIG),
         "SetSelecionado": None,
         "ResultadoPareamento": {},
         "Ticket": None,
@@ -58,10 +62,33 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     Parametros["ModoMenu"] = "escolha_set"
                     Parametros["TelaAtiva"] = TelaEscolhaSet
 
+                elif Parametros["BotoesBase"]["Configuracoes"].atualizar_evento(evento):
+                    Parametros["ModoMenu"] = "config"
+                    Parametros["TelaAtiva"] = TelaConfig
+
                 elif Parametros["BotoesBase"]["Sair"].atualizar_evento(evento):
                     ESTADOS["Menu"] = False
                     ESTADOS["Rodando"] = False
                     return
+
+            elif Parametros["ModoMenu"] == "config":
+                config_tela = Parametros["Config"]
+                for barra in config_tela["Barras"].values():
+                    barra.atualizar_evento(evento)
+
+                for alavanca in config_tela["Alavancas"].values():
+                    alavanca.atualizar_evento(evento)
+
+                if config_tela["BotaoCancelar"].atualizar_evento(evento):
+                    Parametros["ModoMenu"] = "base"
+                    Parametros["TelaAtiva"] = TelaMenu
+                    Parametros["Config"] = InicializaTelaConfig(CONFIG)
+
+                elif config_tela["BotaoAplicar"].atualizar_evento(evento):
+                    aplicar_configuracoes(CONFIG, config_tela)
+                    Parametros["ModoMenu"] = "base"
+                    Parametros["TelaAtiva"] = TelaMenu
+                    Parametros["Config"] = InicializaTelaConfig(CONFIG)
 
             elif Parametros["ModoMenu"] == "escolha_set":
                 if Parametros["EscolhaSet"]["BotaoVoltar"].atualizar_evento(evento):
@@ -72,7 +99,12 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 for botao_set in Parametros["EscolhaSet"]["BotoesSets"]:
                     if botao_set.atualizar_evento(evento):
                         Parametros["SetSelecionado"] = botao_set.texto
-                        jogador = Player(player_id="local-1", nome="Jogador Local", set_escolhido=botao_set.texto)
+                        jogador = Player(
+                            player_id="local-1",
+                            nome="Jogador Local",
+                            set_escolhido=botao_set.texto,
+                            categoria="player",
+                        )
                         resposta = servico_pareamento.entrar_fila(jogador, botao_set.texto)
                         Parametros["Ticket"] = resposta["ticket"]
                         Parametros["ModoMenu"] = "pareamento"
@@ -91,7 +123,7 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
             Parametros["ResultadoPareamento"] = retorno["api"]
 
             if retorno["api"]["status"] == "partida_encontrada":
-                INFO["LobbyAtual"] = retorno["api"]
+                INFO["PartidaAtual"] = retorno["api"].get("partida_objeto")
                 Escurecer(TELA, INFO, fps=CONFIG["FPS"])
                 ESTADOS["Menu"] = False
                 ESTADOS["Estrategista"] = True
