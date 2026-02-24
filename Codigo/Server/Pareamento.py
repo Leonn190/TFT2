@@ -68,3 +68,12 @@ class ServidorPareamento:
             "ok": True,
             "api": resposta_api,
         }
+
+    def registrar_saida_partida(self, partida_id, player_id="local-1"):
+        retorno = gerenciador_partidas.registrar_saida_da_partida(partida_id, player_id)
+        if retorno.get("partida_apagada"):
+            self.partidas_espelhadas.pop(partida_id, None)
+        return {
+            "ok": retorno.get("ok", False),
+            "api": retorno,
+        }

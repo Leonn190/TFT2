@@ -1,7 +1,12 @@
 import pygame
 
-from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, Escurecer, FecharIris
+from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, FecharIris
 from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
+from Codigo.Server.Pareamento import ServidorPareamento
+from Codigo.Telas.Opcoes import InicializaTelaOpcoes, ProcessarEventosTelaOpcoes, TelaOpcoes
+
+
+servico_pareamento = ServidorPareamento()
 
 
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
@@ -24,11 +29,20 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
         "TelaAtiva": TelaEstrategista,
         "TelaBase": TelaEstrategista,
         "PartidaAtual": INFO.get("PartidaAtual"),
+        "Opcoes": InicializaTelaOpcoes(CONFIG),
+        "MostrarOpcoes": False,
     }
 
 
 def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
     Parametros = InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO)
+
+    def ao_sair_partida():
+        partida = Parametros.get("PartidaAtual")
+        if partida is not None:
+            servico_pareamento.registrar_saida_partida(partida.partida_id, player_id="local-1")
+        INFO["PartidaAtual"] = None
+        Parametros["PartidaAtual"] = None
 
     while ESTADOS["Estrategista"] and ESTADOS["Rodando"]:
         eventos = pygame.event.get()
@@ -38,6 +52,11 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 ESTADOS["Rodando"] = False
                 return
 
+            if Parametros["MostrarOpcoes"]:
+                if ProcessarEventosTelaOpcoes(evento, ESTADOS, CONFIG, INFO, Parametros, ao_sair_partida):
+                    Parametros["MostrarOpcoes"] = False
+                continue
+
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_c:
                     FecharIris(TELA, INFO, fps=CONFIG["FPS"])
@@ -46,13 +65,12 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     return
 
                 if evento.key == pygame.K_ESCAPE:
-                    Escurecer(TELA, INFO, fps=CONFIG["FPS"])
-                    ESTADOS["Estrategista"] = False
-                    ESTADOS["Menu"] = True
-                    return
+                    Parametros["MostrarOpcoes"] = True
 
         Parametros["TelaBase"](TELA, ESTADOS, CONFIG, INFO, Parametros)
         Parametros["TelaAtiva"](TELA, ESTADOS, CONFIG, INFO, Parametros)
+        if Parametros["MostrarOpcoes"]:
+            TelaOpcoes(TELA, ESTADOS, CONFIG, INFO, Parametros)
 
         Clarear(TELA, INFO, velocidade=4)
         AplicarClaridade(TELA, CONFIG["Claridade"])

@@ -40,7 +40,7 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
         "EscolhaSet": InicializaTelaEscolhaSet(CONFIG),
         "Pareamento": InicializaTelaPareamento(),
         "Config": InicializaTelaConfig(CONFIG),
-        "SetSelecionado": None,
+        "SetsSelecionados": [],
         "ResultadoPareamento": {},
         "Ticket": None,
     }
@@ -98,32 +98,52 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
 
                 for botao_set in Parametros["EscolhaSet"]["BotoesSets"]:
                     if botao_set.atualizar_evento(evento):
-                        Parametros["SetSelecionado"] = botao_set.texto
+                        break
+
+                if Parametros["EscolhaSet"]["BotaoBuscar"].atualizar_evento(evento):
+                    sets_escolhidos = [botao.texto for botao in Parametros["EscolhaSet"]["BotoesSets"] if botao.ativo]
+                    if not sets_escolhidos:
+                        continue
+
+                    tickets = []
+                    for set_nome in sets_escolhidos:
                         jogador = Player(
                             player_id="local-1",
                             nome="Jogador Local",
-                            set_escolhido=botao_set.texto,
+                            set_escolhido=set_nome,
                             categoria="player",
                         )
-                        resposta = servico_pareamento.entrar_fila(jogador, botao_set.texto)
-                        Parametros["Ticket"] = resposta["ticket"]
-                        Parametros["ModoMenu"] = "pareamento"
-                        Parametros["TelaAtiva"] = TelaPareamento
-                        break
+                        resposta = servico_pareamento.entrar_fila(jogador, set_nome)
+                        tickets.append(resposta["ticket"])
+
+                    Parametros["SetsSelecionados"] = sets_escolhidos
+                    Parametros["Ticket"] = tickets
+                    Parametros["ModoMenu"] = "pareamento"
+                    Parametros["TelaAtiva"] = TelaPareamento
 
             elif Parametros["ModoMenu"] == "pareamento":
                 if Parametros["Pareamento"]["BotaoCancelar"].atualizar_evento(evento):
                     Parametros["ModoMenu"] = "escolha_set"
                     Parametros["TelaAtiva"] = TelaEscolhaSet
                     Parametros["ResultadoPareamento"] = {}
-                    Parametros["SetSelecionado"] = None
+                    Parametros["SetsSelecionados"] = []
+                    for botao in Parametros["EscolhaSet"]["BotoesSets"]:
+                        botao.definir_valor(False)
 
-        if Parametros["ModoMenu"] == "pareamento" and Parametros["SetSelecionado"]:
-            retorno = servico_pareamento.atualizar(Parametros["SetSelecionado"])
-            Parametros["ResultadoPareamento"] = retorno["api"]
+        if Parametros["ModoMenu"] == "pareamento" and Parametros["SetsSelecionados"]:
+            melhor_retorno = None
+            for set_nome in Parametros["SetsSelecionados"]:
+                retorno = servico_pareamento.atualizar(set_nome)
+                if melhor_retorno is None:
+                    melhor_retorno = retorno
+                if retorno["api"].get("status") == "partida_encontrada":
+                    melhor_retorno = retorno
+                    break
 
-            if retorno["api"]["status"] == "partida_encontrada":
-                INFO["PartidaAtual"] = retorno["api"].get("partida_objeto")
+            Parametros["ResultadoPareamento"] = melhor_retorno["api"] if melhor_retorno else {}
+
+            if melhor_retorno and melhor_retorno["api"]["status"] == "partida_encontrada":
+                INFO["PartidaAtual"] = melhor_retorno["api"].get("partida_objeto")
                 Escurecer(TELA, INFO, fps=CONFIG["FPS"])
                 ESTADOS["Menu"] = False
                 ESTADOS["Estrategista"] = True
