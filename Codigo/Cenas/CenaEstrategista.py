@@ -97,6 +97,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         set_nome=getattr(jogador_ativo, "set_escolhido", "BrawlStars") or "BrawlStars",
         hover_info=hover_sinergia,
     )
+    Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
     Parametros["Ficha"].desenhar(TELA, Parametros.get("CartaHoverMapa"))
     Parametros["Banco"].desenhar(TELA, jogador_ativo.banco, cartas_drag=[Parametros["DragBanco"]["carta"]] if Parametros["DragBanco"] else None, ouro=jogador_ativo.ouro)
     arrastando_banco = Parametros["DragBanco"] is not None
@@ -193,10 +194,12 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
             if jogador_ativo is None:
                 continue
 
-            slot_hover_loop = Parametros["Mapa"].slot_por_posicao(pygame.mouse.get_pos(), jogador_ativo.mapa)
-            Parametros["CartaHoverMapa"] = slot_hover_loop.get("carta") if slot_hover_loop and slot_hover_loop.get("carta") else None
-
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                jogador_clicado_id = Parametros["Visualizador"].jogador_clicado(evento.pos, partida.jogadores)
+                if jogador_clicado_id is not None:
+                    Parametros["JogadorVisualizadoId"] = jogador_clicado_id
+                    continue
+
                 carta_banco = Parametros["Banco"].carta_por_posicao(evento.pos, jogador_ativo.banco)
                 slot_mapa = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
 
@@ -208,9 +211,6 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     servidor_estrategista.desbloquear_slot_mapa(partida, jogador_ativo.player_id, slot_mapa.get("slot_id", -1))
 
             if evento.type == pygame.MOUSEMOTION:
-                slot_hover = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
-                Parametros["CartaHoverMapa"] = slot_hover.get("carta") if slot_hover and slot_hover.get("carta") else None
-
                 if Parametros["DragBanco"] is not None:
                     slot_mapa = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
                     if slot_mapa is not None and slot_mapa.get("desbloqueado"):
@@ -231,12 +231,21 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     elif Parametros["Loja"].rect.collidepoint(evento.pos):
                         servidor_estrategista.vender_do_banco(partida, jogador_ativo.player_id, Parametros["DragBanco"]["indice"])
 
-                if Parametros["DragMapa"] is not None and Parametros["Banco"].rect.collidepoint(evento.pos):
-                    servidor_estrategista.mover_mapa_para_banco(
-                        partida,
-                        jogador_ativo.player_id,
-                        Parametros["DragMapa"].get("slot_id", -1),
-                    )
+                if Parametros["DragMapa"] is not None:
+                    slot_destino = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
+                    if slot_destino is not None:
+                        servidor_estrategista.mover_mapa_para_mapa(
+                            partida,
+                            jogador_ativo.player_id,
+                            Parametros["DragMapa"].get("slot_id", -1),
+                            slot_destino.get("slot_id", -1),
+                        )
+                    elif Parametros["Banco"].rect.collidepoint(evento.pos):
+                        servidor_estrategista.mover_mapa_para_banco(
+                            partida,
+                            jogador_ativo.player_id,
+                            Parametros["DragMapa"].get("slot_id", -1),
+                        )
 
                 Parametros["DragBanco"] = None
                 Parametros["DragMapa"] = None
@@ -261,6 +270,11 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
             ESTADOS["Estrategista"] = False
             ESTADOS["Batalha"] = True
             return
+
+        partida = Parametros.get("PartidaAtual")
+        jogador_hover = _obter_jogador_por_id(partida, Parametros.get("JogadorVisualizadoId", "local-1")) if partida is not None else None
+        slot_hover = Parametros["Mapa"].slot_por_posicao(pygame.mouse.get_pos(), jogador_hover.mapa) if jogador_hover is not None else None
+        Parametros["CartaHoverMapa"] = slot_hover.get("carta") if slot_hover and slot_hover.get("carta") else None
 
         Parametros["TelaBase"](TELA, ESTADOS, CONFIG, INFO, Parametros)
         Parametros["TelaAtiva"](TELA, ESTADOS, CONFIG, INFO, Parametros)
