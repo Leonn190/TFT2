@@ -62,7 +62,7 @@ class ConstrutorVisualCartucho:
             pygame.draw.rect(card_surface, (30, 30, 30, alpha), imagem_rect, border_radius=8)
 
         barra_nome = pygame.Surface((rect.width - 4, 30), pygame.SRCALPHA)
-        barra_nome.fill((0, 0, 0, 145))
+        barra_nome.fill((0, 0, 0, 110))
         card_surface.blit(barra_nome, (2, rect.height - 34))
 
         nome = str(self._obter_campo(carta, "nome", "Carta"))

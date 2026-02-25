@@ -1,8 +1,7 @@
 import random
 from copy import deepcopy
 
-from Codigo.Classes.Personagem import Personagem
-from SimuladorAPI.teste import criar_cartas_teste
+from SimuladorAPI.teste import criar_cartas_teste, criar_estoque_por_raridade
 
 
 class Ativador:
@@ -23,7 +22,7 @@ class Ativador:
             return
 
         cartas_base = criar_cartas_teste()
-        estoque = {carta["id"]: 8 for carta in cartas_base}
+        estoque = criar_estoque_por_raridade(cartas_base)
         catalogo = {carta["id"]: carta for carta in cartas_base}
 
         self._partidas[partida_id] = {
@@ -37,8 +36,8 @@ class Ativador:
 
         for jogador in partida.jogadores:
             estado = self._partidas[partida_id]["jogadores"][jogador.player_id]
-            estado["banco"] = self._comprar_cartas_estoque(partida_id, quantidade=6, para_banco=True)
-            estado["loja"] = self._comprar_cartas_estoque(partida_id, quantidade=3, para_banco=False)
+            estado["banco"] = self._comprar_cartas_estoque(partida_id, quantidade=6)
+            estado["loja"] = self._comprar_cartas_estoque(partida_id, quantidade=3)
 
     def _estado_inicial_jogador(self):
         return {
@@ -60,7 +59,7 @@ class Ativador:
         self._proximo_uid_carta += 1
         return clone
 
-    def _comprar_cartas_estoque(self, partida_id, quantidade, para_banco=False):
+    def _comprar_cartas_estoque(self, partida_id, quantidade):
         partida_estado = self._partidas[partida_id]
         cartas = []
         for _ in range(quantidade):
@@ -70,7 +69,7 @@ class Ativador:
             carta_id = random.choice(disponiveis)
             partida_estado["estoque"][carta_id] -= 1
             base = self._clonar_carta_catalogo(partida_estado["catalogo"][carta_id])
-            cartas.append(Personagem.de_dict(base) if para_banco else base)
+            cartas.append(base)
         return cartas
 
     @staticmethod
@@ -107,13 +106,7 @@ class Ativador:
         return partida
 
     def atualizar_outros_players(self, partida, player_local_id="local-1"):
-        partida_id = self._chave(partida)
-        estado = self._partidas[partida_id]
-        for jogador in partida.jogadores:
-            if jogador.player_id == player_local_id:
-                continue
-            dados = estado["jogadores"][jogador.player_id]
-            dados["ouro"] = max(0, min(50, dados["ouro"] + random.randint(-1, 2)))
+        return
 
     def comprar_carta_loja(self, partida, player_id, indice_loja):
         self._inicializar_partida(partida)
@@ -128,7 +121,7 @@ class Ativador:
             return False, "banco_cheio"
 
         estado_jogador["ouro"] -= custo
-        estado_jogador["banco"].append(Personagem.de_dict(carta))
+        estado_jogador["banco"].append(deepcopy(carta))
         del estado_jogador["loja"][indice_loja]
         return True, "ok"
 
