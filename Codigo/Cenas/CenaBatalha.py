@@ -1,5 +1,3 @@
-import random
-
 import pygame
 
 from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, FecharIris
@@ -11,6 +9,7 @@ from Codigo.Telas.Opcoes import InicializaTelaOpcoes, ProcessarEventosTelaOpcoes
 
 servico_pareamento = ServidorPareamento()
 servidor_estrategista = ServidorEstrategista()
+INFO_INDICE_BATALHA_ATUAL = {"indice": 0}
 
 
 def _obter_jogador_local(partida):
@@ -24,7 +23,11 @@ def _obter_jogador_local(partida):
 
 def _escolher_inimigo(partida, jogador_local):
     candidatos = [j for j in partida.jogadores if j.player_id != jogador_local.player_id]
-    return random.choice(candidatos) if candidatos else None
+    if not candidatos:
+        return None
+    candidatos.sort(key=lambda j: j.player_id)
+    indice = INFO_INDICE_BATALHA_ATUAL.get("indice", 0) % len(candidatos)
+    return candidatos[indice]
 
 
 def _registrar_resultado_batalha(INFO, resultado):
@@ -49,9 +52,12 @@ def InicializaBatalha(TELA, ESTADOS, CONFIG, INFO):
     simulador = None
     if partida is not None and jogador_local is not None:
         servidor_estrategista.sincronizar_partida(partida)
+        INFO_INDICE_BATALHA_ATUAL["indice"] = int(INFO.get("IndiceBatalhaAtual", 0))
         inimigo = _escolher_inimigo(partida, jogador_local)
         if inimigo is not None:
-            simulador = SimuladorBatalha(jogador_local, inimigo)
+            seed_base = int(getattr(partida, "seed_combate", 1337))
+            seed = seed_base + INFO_INDICE_BATALHA_ATUAL["indice"]
+            simulador = SimuladorBatalha(jogador_local, inimigo, seed=seed)
 
     return {
         "TelaAtiva": TelaBatalha,

@@ -4,10 +4,11 @@ from Codigo.Classes.PersonagemCombate import PersonagemCombate
 
 
 class PlayerCombate:
-    def __init__(self, jogador_base):
+    def __init__(self, jogador_base, rng=None):
         self.jogador_base = jogador_base
         self.player_id = jogador_base.player_id
         self.nome = jogador_base.nome
+        self.rng = rng
 
     def _cartas_por_linha(self, indice_linha):
         cartas = []
@@ -24,5 +25,5 @@ class PlayerCombate:
     def montar_time_linha(self, indice_linha, equipe, arena_rect):
         personagens = []
         for indice, carta in enumerate(self._cartas_por_linha(indice_linha)):
-            personagens.append(PersonagemCombate(carta=carta, equipe=equipe, arena_rect=arena_rect, indice=indice))
+            personagens.append(PersonagemCombate(carta=carta, equipe=equipe, arena_rect=arena_rect, indice=indice, rng=self.rng))
         return personagens

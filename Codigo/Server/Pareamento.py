@@ -2,7 +2,7 @@ import uuid
 
 from Codigo.Classes.Partida import Partida
 from Codigo.Classes.Player import Player
-from SimuladorAPI.GerenciadorPartidas import gerenciador_partidas
+from SimuladorAPI.APIJson import api_json_global
 
 
 class ServidorPareamento:
@@ -52,8 +52,11 @@ class ServidorPareamento:
         resposta_api["partida_objeto"] = partida
         return resposta_api
 
+    def _enviar(self, rota, payload):
+        return api_json_global.enviar(rota, payload)
+
     def entrar_fila(self, jogador, set_escolhido):
-        resposta_api = gerenciador_partidas.entrar_na_fila(jogador, set_escolhido)
+        resposta_api = self._enviar("pareamento.entrar_na_fila", {"jogador": jogador.para_json(), "set_escolhido": set_escolhido})
         resposta_api = self._sincronizar_espelho(resposta_api, set_escolhido, jogador_entrada=jogador)
         return {
             "ticket": uuid.uuid4().hex,
@@ -62,7 +65,7 @@ class ServidorPareamento:
         }
 
     def atualizar(self, set_escolhido):
-        resposta_api = gerenciador_partidas.atualizar_pareamento(set_escolhido=set_escolhido)
+        resposta_api = self._enviar("pareamento.atualizar", {"set_escolhido": set_escolhido})
         resposta_api = self._sincronizar_espelho(resposta_api, set_escolhido)
         return {
             "ok": True,
@@ -70,14 +73,14 @@ class ServidorPareamento:
         }
 
     def cancelar_fila(self, set_escolhido, player_id="local-1"):
-        retorno = gerenciador_partidas.cancelar_busca_fila(set_escolhido, player_id)
+        retorno = self._enviar("pareamento.cancelar_fila", {"set_escolhido": set_escolhido, "player_id": player_id})
         return {
             "ok": retorno.get("ok", False),
             "api": retorno,
         }
 
     def registrar_saida_partida(self, partida_id, player_id="local-1"):
-        retorno = gerenciador_partidas.registrar_saida_da_partida(partida_id, player_id)
+        retorno = self._enviar("pareamento.registrar_saida", {"partida_id": partida_id, "player_id": player_id})
         self.partidas_espelhadas.pop(partida_id, None)
         return {
             "ok": retorno.get("ok", False),
@@ -85,21 +88,21 @@ class ServidorPareamento:
         }
 
     def simular_rodada(self, partida_id):
-        retorno = gerenciador_partidas.simular_rodada(partida_id)
+        retorno = self._enviar("pareamento.simular_rodada", {"partida_id": partida_id})
         return {
             "ok": retorno.get("ok", False),
             "api": retorno,
         }
 
     def simular_partida_completa(self, partida_id, max_rodadas=100):
-        retorno = gerenciador_partidas.simular_partida_completa(partida_id, max_rodadas=max_rodadas)
+        retorno = self._enviar("pareamento.simular_partida", {"partida_id": partida_id, "max_rodadas": max_rodadas})
         return {
             "ok": retorno.get("ok", False),
             "api": retorno,
         }
 
     def estado_partida(self, partida_id):
-        retorno = gerenciador_partidas.obter_estado_partida(partida_id)
+        retorno = self._enviar("pareamento.estado_partida", {"partida_id": partida_id})
         return {
             "ok": retorno.get("ok", False),
             "api": retorno,
