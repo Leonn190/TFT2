@@ -1,5 +1,6 @@
 import pygame
 
+from Codigo.Modulos.ConstrutorVisual import construtor_visual_cartucho
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 
@@ -13,10 +14,7 @@ class Combatentes:
         largura_slot = (self.rect.width - margem * 4) // 5
         altura_slot = self.rect.height - 14
         y = self.rect.y + 7
-        return [
-            pygame.Rect(self.rect.x + i * (largura_slot + margem), y, largura_slot, altura_slot)
-            for i in range(5)
-        ]
+        return [pygame.Rect(self.rect.x + i * (largura_slot + margem), y, largura_slot, altura_slot) for i in range(5)]
 
     def slot_por_posicao(self, pos):
         for indice, slot in enumerate(self._slots()):
@@ -43,21 +41,12 @@ class Combatentes:
                 tela.blit(texto, (slot.centerx - texto.get_width() // 2, slot.centery - texto.get_height() // 2))
                 continue
 
-            nome = self.fonte_item.render(carta.get("nome", "Carta"), True, (236, 236, 236))
-            sinergia = self.fonte_item.render(carta.get("sinergia", "-"), True, (206, 212, 220))
-            tela.blit(nome, (slot.x + 8, slot.y + 6))
-            tela.blit(sinergia, (slot.x + 8, slot.y + 24))
+            construtor_visual_cartucho.desenhar_cartucho(tela, carta, slot)
 
         if carta_drag is not None:
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            largura_drag, altura_drag = 150, 52
-            card = pygame.Rect(mouse_x - largura_drag // 2, mouse_y - altura_drag // 2, largura_drag, altura_drag)
-            pygame.draw.rect(tela, (76, 84, 94), card, border_radius=8)
-            pygame.draw.rect(tela, (186, 196, 208), card, width=2, border_radius=8)
-            nome = self.fonte_item.render(carta_drag.get("nome", "Carta"), True, (244, 244, 244))
-            sinergia = self.fonte_item.render(carta_drag.get("sinergia", "-"), True, (220, 226, 234))
-            tela.blit(nome, (card.x + 8, card.y + 6))
-            tela.blit(sinergia, (card.x + 8, card.y + 26))
+            card = pygame.Rect(mouse_x - 75, mouse_y - 26, 150, 52)
+            construtor_visual_cartucho.desenhar_cartucho(tela, carta_drag, card, destacada=True, alpha=220)
 
 
 Selecao = Combatentes
