@@ -21,6 +21,13 @@ class Banco:
             for i in range(quantidade)
         ]
 
+
+    def indice_por_posicao(self, pos, cartas_banco):
+        for indice, slot in enumerate(self._rects_slots(max(6, len(cartas_banco)))):
+            if indice < len(cartas_banco) and slot.collidepoint(pos):
+                return indice
+        return None
+
     def processar_evento(self, evento, cartas_banco, area_loja_rect):
         if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
             for indice, slot in enumerate(self._rects_slots(max(6, len(cartas_banco)))):

@@ -50,9 +50,13 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         fonte_ping = obter_fonte(24)
         TELA.blit(fonte_ping.render(f"Ping: {partida.ping_ms}ms", True, (196, 204, 216)), (10, 36))
 
-    Parametros["Mapa"].desenhar(TELA, jogador_ativo.mapa, mostrar_grade=Parametros["Banco"].drag is not None, carta_drag=Parametros["Banco"].drag["carta"] if Parametros["Banco"].drag else None)
+    carta_drag = None
+    if Parametros["Selecao"].drag_ativo and jogador_ativo.selecao:
+        carta_drag = jogador_ativo.selecao[0]["carta"]
+
+    Parametros["Mapa"].desenhar(TELA, jogador_ativo.mapa, mostrar_grade=Parametros["Selecao"].drag_ativo, carta_drag=carta_drag)
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
-    Parametros["Selecao"].desenhar(TELA, jogador_ativo.selecao, carta_drag=Parametros["DragMapa"]["carta"] if Parametros["DragMapa"] else None)
+    Parametros["Selecao"].desenhar(TELA, jogador_ativo.selecao, carta_drag=carta_drag)
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
     Parametros["Banco"].desenhar(TELA, jogador_ativo.banco)
     Parametros["Loja"].desenhar(TELA, jogador_ativo.loja)
@@ -81,7 +85,6 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
         "Selecao": Selecao(),
         "Visualizador": Visualizador(),
         "JogadorVisualizadoId": "local-1",
-        "DragMapa": None,
     }
 
 
@@ -134,6 +137,13 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
             if jogador_ativo is None:
                 continue
 
+            acao_selecao = Parametros["Selecao"].processar_evento(evento, jogador_ativo.selecao)
+            if acao_selecao and acao_selecao["acao"] == "soltar":
+                pos_slot = Parametros["Mapa"].slot_para_posicao(acao_selecao["pos"])
+                if pos_slot is not None:
+                    servidor_estrategista.posicionar_selecao_no_mapa(partida, jogador_ativo.player_id, pos_slot[0], pos_slot[1])
+                continue
+
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 player_id = Parametros["Visualizador"].jogador_clicado(evento.pos, partida.jogadores)
                 if player_id is not None:
@@ -142,21 +152,19 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
 
                 entry = Parametros["Mapa"].tropa_por_posicao(evento.pos, jogador_ativo.mapa)
                 if entry is not None:
-                    Parametros["DragMapa"] = entry
+                    servidor_estrategista.alternar_selecao_mapa(partida, jogador_ativo.player_id, entry["q"], entry["r"])
                     continue
 
-            if evento.type == pygame.MOUSEBUTTONUP and evento.button == 1 and Parametros["DragMapa"] is not None:
-                indice_selecao = Parametros["Selecao"].slot_por_posicao(evento.pos)
-                if indice_selecao is not None:
-                    servidor_estrategista.mover_mapa_para_selecao(
-                        partida,
-                        jogador_ativo.player_id,
-                        Parametros["DragMapa"]["q"],
-                        Parametros["DragMapa"]["r"],
-                        indice_selecao,
-                    )
-                Parametros["DragMapa"] = None
-                continue
+                indice_banco = Parametros["Banco"].indice_por_posicao(evento.pos, jogador_ativo.banco)
+                if indice_banco is not None:
+                    servidor_estrategista.alternar_selecao_banco(partida, jogador_ativo.player_id, indice_banco)
+                    continue
+
+            if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 3:
+                indice_banco = Parametros["Banco"].indice_por_posicao(evento.pos, jogador_ativo.banco)
+                if indice_banco is not None:
+                    servidor_estrategista.vender_do_banco(partida, jogador_ativo.player_id, indice_banco)
+                    continue
 
             acao_loja = Parametros["Loja"].processar_evento(evento, jogador_ativo.loja)
             if acao_loja:
@@ -164,15 +172,6 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     servidor_estrategista.roletar_loja(partida, jogador_ativo.player_id)
                 elif acao_loja["acao"] == "comprar":
                     servidor_estrategista.comprar_carta_loja(partida, jogador_ativo.player_id, acao_loja["indice"])
-
-            acao_banco = Parametros["Banco"].processar_evento(evento, jogador_ativo.banco, Parametros["Loja"].rect)
-            if acao_banco:
-                if acao_banco["acao"] == "vender":
-                    servidor_estrategista.vender_do_banco(partida, jogador_ativo.player_id, acao_banco["indice"])
-                elif acao_banco["acao"] == "soltar":
-                    pos_hex = Parametros["Mapa"].slot_para_posicao(acao_banco["pos"])
-                    if pos_hex is not None:
-                        servidor_estrategista.posicionar_do_banco(partida, jogador_ativo.player_id, acao_banco["indice"], pos_hex[0], pos_hex[1])
 
         partida = Parametros.get("PartidaAtual")
         if partida is not None and acumulador_sync_ms >= partida.ping_ms:

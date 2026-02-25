@@ -92,8 +92,20 @@ class Ativador:
                 continue
             dados = estado["jogadores"][jogador.player_id]
             dados["ouro"] = max(0, min(50, dados["ouro"] + random.randint(-1, 2)))
-            if random.random() < 0.05:
-                dados["vida"] = max(1, dados["vida"] - 1)
+
+    @staticmethod
+    def _sinergias_carta(carta):
+        sinergias = {carta.get("sinergia", "-")}
+        if carta.get("sinergia_secundaria"):
+            sinergias.add(carta["sinergia_secundaria"])
+        return sinergias
+
+    def _sinergia_comum_selecao(self, selecao):
+        comum = None
+        for item in selecao:
+            atual = self._sinergias_carta(item["carta"])
+            comum = atual if comum is None else comum.intersection(atual)
+        return sorted(comum)[0] if comum else None
 
     def comprar_carta_loja(self, partida, player_id, indice_loja):
         self._inicializar_partida(partida)
@@ -196,25 +208,108 @@ class Ativador:
         return True, "ok"
 
     def mover_mapa_para_selecao(self, partida, player_id, q, r, indice_selecao):
+        # Mantido por compatibilidade com chamadas antigas.
+        return self.alternar_selecao_mapa(partida, player_id, q, r)
+
+    def alternar_selecao_banco(self, partida, player_id, indice_banco):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        if indice_banco < 0 or indice_banco >= len(estado_jogador["banco"]):
+            return False, "indice_invalido"
 
-        if indice_selecao < 0 or indice_selecao >= 1:
-            return False, "slot_bloqueado"
+        selecao = estado_jogador["selecao"]
+        for i, item in enumerate(selecao):
+            if item["origem"] == "banco" and item["indice"] == indice_banco:
+                del selecao[i]
+                return True, "removido"
 
+        if len(selecao) >= 3:
+            return False, "selecao_cheia"
+
+        novo_item = {"origem": "banco", "indice": indice_banco, "carta": deepcopy(estado_jogador["banco"][indice_banco])}
+        if selecao and self._sinergia_comum_selecao(selecao + [novo_item]) is None:
+            return False, "sinergia_invalida"
+
+        selecao.append(novo_item)
+        return True, "ok"
+
+    def alternar_selecao_mapa(self, partida, player_id, q, r):
+        self._inicializar_partida(partida)
+        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
         indice_mapa = next((i for i, entry in enumerate(estado_jogador["mapa"]) if entry["q"] == q and entry["r"] == r), -1)
         if indice_mapa < 0:
             return False, "tropa_inexistente"
 
-        while len(estado_jogador["selecao"]) < 5:
-            estado_jogador["selecao"].append(None)
+        selecao = estado_jogador["selecao"]
+        for i, item in enumerate(selecao):
+            if item["origem"] == "mapa" and item["indice"] == indice_mapa:
+                del selecao[i]
+                return True, "removido"
 
-        if estado_jogador["selecao"][indice_selecao] is not None:
-            return False, "slot_ocupado"
+        if len(selecao) >= 3:
+            return False, "selecao_cheia"
 
-        entry = estado_jogador["mapa"][indice_mapa]
-        estado_jogador["selecao"][indice_selecao] = entry["carta"]
-        # A seleção apenas referencia a tropa escolhida; ela continua no mapa e nas sinergias.
+        novo_item = {"origem": "mapa", "indice": indice_mapa, "carta": deepcopy(estado_jogador["mapa"][indice_mapa]["carta"])}
+        if selecao and self._sinergia_comum_selecao(selecao + [novo_item]) is None:
+            return False, "sinergia_invalida"
+
+        selecao.append(novo_item)
+        return True, "ok"
+
+    def posicionar_selecao_no_mapa(self, partida, player_id, q_base, r_base):
+        self._inicializar_partida(partida)
+        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        selecao = estado_jogador["selecao"]
+        if len(selecao) != 3:
+            return False, "selecao_incompleta"
+
+        sinergia = self._sinergia_comum_selecao(selecao)
+        if sinergia is None:
+            return False, "sinergia_invalida"
+
+        ocupados = {(entry["q"], entry["r"]) for entry in estado_jogador["mapa"]}
+        entradas_sinergia = [entry for entry in estado_jogador["mapa"] if sinergia in self._sinergias_carta(entry["carta"]) and entry["r"] == r_base]
+
+        destino = []
+        if entradas_sinergia:
+            q_min = min(entry["q"] for entry in entradas_sinergia)
+            q_max = max(entry["q"] for entry in entradas_sinergia)
+            tentativa_direita = [(q_max + i + 1, r_base) for i in range(3)]
+            if all(0 <= q < 12 and 0 <= r_base < 8 and (q, r_base) not in ocupados for q, _ in tentativa_direita):
+                destino = tentativa_direita
+            else:
+                tentativa_esquerda = [(q_min - i - 1, r_base) for i in range(3)]
+                tentativa_esquerda.reverse()
+                if all(0 <= q < 12 and 0 <= r_base < 8 and (q, r_base) not in ocupados for q, _ in tentativa_esquerda):
+                    destino = tentativa_esquerda
+        else:
+            q_inicio = max(0, min(9, q_base - 1))
+            tentativa = [(q_inicio + i, r_base) for i in range(3)]
+            if all(0 <= q < 12 and 0 <= r_base < 8 and (q, r_base) not in ocupados for q, _ in tentativa):
+                destino = tentativa
+
+        if len(destino) != 3:
+            return False, "sem_espaco"
+
+        indices_banco = sorted([item["indice"] for item in selecao if item["origem"] == "banco"], reverse=True)
+        for indice in indices_banco:
+            if indice >= len(estado_jogador["banco"]):
+                return False, "indice_invalido"
+
+        cartas_posicionadas = []
+        for item in selecao:
+            if item["origem"] == "banco":
+                cartas_posicionadas.append(deepcopy(estado_jogador["banco"][item["indice"]]))
+            else:
+                cartas_posicionadas.append(deepcopy(item["carta"]))
+
+        for indice in indices_banco:
+            estado_jogador["banco"].pop(indice)
+
+        for carta, (q, r) in zip(cartas_posicionadas, destino):
+            estado_jogador["mapa"].append({"carta": carta, "q": q, "r": r})
+
+        estado_jogador["selecao"] = []
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         return True, "ok"
 

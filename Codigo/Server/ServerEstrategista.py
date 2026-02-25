@@ -22,3 +22,12 @@ class ServidorEstrategista:
 
     def mover_mapa_para_selecao(self, partida, player_id, q, r, indice_selecao):
         return ativador_global.mover_mapa_para_selecao(partida, player_id, q, r, indice_selecao)
+
+    def alternar_selecao_banco(self, partida, player_id, indice_banco):
+        return ativador_global.alternar_selecao_banco(partida, player_id, indice_banco)
+
+    def alternar_selecao_mapa(self, partida, player_id, q, r):
+        return ativador_global.alternar_selecao_mapa(partida, player_id, q, r)
+
+    def posicionar_selecao_no_mapa(self, partida, player_id, q_base, r_base):
+        return ativador_global.posicionar_selecao_no_mapa(partida, player_id, q_base, r_base)
