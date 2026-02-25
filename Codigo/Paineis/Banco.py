@@ -8,21 +8,34 @@ class Banco:
         self.rect = pygame.Rect(30, int(altura_tela * 0.79), int(largura_tela * 0.67), int(altura_tela * 0.20))
         self.fonte_titulo = obter_fonte(30)
         self.fonte_carta = obter_fonte(22)
+        self.limite_cartas = 10
+        self.largura_carta = 182
+        self.altura_carta = self.rect.height - 54
+        self.escala_hover = {}
 
     def _rects_slots(self, quantidade):
-        quantidade = max(1, quantidade)
-        margem = 12
-        largura_slot = (self.rect.width - margem * (quantidade + 1)) // quantidade
-        altura_slot = self.rect.height - 54
+        quantidade = max(1, min(self.limite_cartas, quantidade))
         y = self.rect.y + 40
+        largura_slot = self.largura_carta
+        altura_slot = self.altura_carta
+        inicio_x = self.rect.x + 12
+
+        if quantidade == 1:
+            passo_x = 0
+        else:
+            largura_disponivel = self.rect.width - 24 - largura_slot
+            passo_x = min(largura_slot + 8, max(1, largura_disponivel // (quantidade - 1)))
+
         return [
-            pygame.Rect(self.rect.x + margem + i * (largura_slot + margem), y, largura_slot, altura_slot)
+            pygame.Rect(int(inicio_x + i * passo_x), y, largura_slot, altura_slot)
             for i in range(quantidade)
         ]
 
     def carta_por_posicao(self, pos, cartas_banco):
-        for indice, slot in enumerate(self._rects_slots(max(6, len(cartas_banco)))):
-            if indice < len(cartas_banco) and slot.collidepoint(pos):
+        slots = self._rects_slots(max(6, len(cartas_banco)))
+        for indice in range(min(len(cartas_banco), len(slots)) - 1, -1, -1):
+            slot = slots[indice]
+            if slot.collidepoint(pos):
                 return {"indice": indice, "carta": cartas_banco[indice], "rect": slot}
         return None
 
@@ -36,14 +49,32 @@ class Banco:
             txt_ouro = self.fonte_titulo.render(f"Ouro: {ouro}", True, (236, 218, 126))
             tela.blit(txt_ouro, (self.rect.right - txt_ouro.get_width() - 12, self.rect.y + 8))
 
-        slots = self._rects_slots(max(6, len(cartas_banco)))
+        cartas_visiveis = cartas_banco[: self.limite_cartas]
+        slots = self._rects_slots(max(6, len(cartas_visiveis)))
+        mouse = pygame.mouse.get_pos()
+        hover_indice = None
+        for indice in range(min(len(cartas_visiveis), len(slots)) - 1, -1, -1):
+            if slots[indice].collidepoint(mouse):
+                hover_indice = indice
+                break
+
         for indice, slot in enumerate(slots):
-            pygame.draw.rect(tela, (88, 70, 54), slot, border_radius=10)
-            pygame.draw.rect(tela, (170, 146, 118), slot, width=2, border_radius=10)
-            if indice < len(cartas_banco):
-                carta = cartas_banco[indice]
-                selecionada = carta.get("uid") in cartas_selecionadas
-                card_rect = slot.move(0, -8) if selecionada else slot
+            if indice < len(cartas_visiveis):
+                carta = cartas_visiveis[indice]
+                uid = carta.get("uid", f"carta-{indice}")
+                atual = self.escala_hover.get(uid, 1.0)
+                alvo = 1.04 if indice == hover_indice else 1.0
+                atual += (alvo - atual) * 0.28
+                self.escala_hover[uid] = atual
+
+                selecionada = uid in cartas_selecionadas
+                base_rect = slot.move(0, -8) if selecionada else slot
+                centro = base_rect.center
+                largura = int(base_rect.width * atual)
+                altura = int(base_rect.height * atual)
+                card_rect = pygame.Rect(0, 0, largura, altura)
+                card_rect.center = (centro[0], centro[1] - (2 if indice == hover_indice else 0))
+
                 borda = (240, 214, 76) if selecionada else (176, 150, 122)
                 pygame.draw.rect(tela, (100, 78, 60), card_rect, border_radius=10)
                 pygame.draw.rect(tela, borda, card_rect, width=2, border_radius=10)

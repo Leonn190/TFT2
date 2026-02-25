@@ -112,6 +112,9 @@ class Ativador:
         custo = carta.get("custo", 3)
         if estado_jogador["ouro"] < custo:
             return False, "ouro_insuficiente"
+        if len(estado_jogador["banco"]) >= 10:
+            return False, "banco_cheio"
+
         estado_jogador["ouro"] -= custo
         estado_jogador["banco"].append(carta)
         del estado_jogador["loja"][indice_loja]
@@ -282,6 +285,9 @@ class Ativador:
         carta = slot.get("carta")
         if carta is None:
             return False, "slot_vazio"
+
+        if len(estado_jogador["banco"]) >= 10:
+            return False, "banco_cheio"
 
         slot["carta"] = None
         estado_jogador["banco"].append(carta)
