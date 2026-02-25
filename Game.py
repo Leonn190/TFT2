@@ -22,7 +22,7 @@ RELOGIO = pygame.time.Clock()
 sets_encontrados = listar_sets_existentes()
 
 CONFIG = carregar_configuracoes_fixas()
-CONFIG["SetsDisponiveis"] = sets_encontrados or ["Set 10", "Set 11", "Set 12"]
+CONFIG["SetsDisponiveis"] = sets_encontrados or ["BrawlStars"]
 
 INFO = {"Escuro": 100}
 

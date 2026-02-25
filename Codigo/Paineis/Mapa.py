@@ -1,5 +1,6 @@
 import pygame
 
+from Codigo.Modulos.ConstrutorVisual import construtor_visual_cartucho
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 
@@ -61,28 +62,19 @@ class Mapa:
             if not slot.get("desbloqueado"):
                 cor_slot = (30, 44, 35)
                 cor_borda = (68, 98, 78)
-            else:
-                cor_slot = (52, 84, 62) if carta is None else (64, 98, 74)
-                cor_borda = (246, 216, 84) if destacado else (150, 180, 160)
-
-            pygame.draw.rect(tela, cor_slot, rect, border_radius=10)
-            pygame.draw.rect(tela, cor_borda, rect, width=2, border_radius=10)
-
-            if not slot.get("desbloqueado"):
+                pygame.draw.rect(tela, cor_slot, rect, border_radius=10)
+                pygame.draw.rect(tela, cor_borda, rect, width=2, border_radius=10)
                 txt = self.fonte_carta.render("Bloq.", True, (142, 148, 156))
                 tela.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
                 continue
 
             if carta is None:
+                cor_slot = (52, 84, 62)
+                cor_borda = (246, 216, 84) if destacado else (150, 180, 160)
+                pygame.draw.rect(tela, cor_slot, rect, border_radius=10)
+                pygame.draw.rect(tela, cor_borda, rect, width=2, border_radius=10)
                 txt = self.fonte_carta.render("Livre", True, (192, 198, 206))
                 tela.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
                 continue
 
-            nome = self.fonte_carta.render(carta.get("nome", "Carta"), True, (246, 246, 246))
-            sinergia = carta.get("sinergia", "-")
-            if carta.get("sinergia_secundaria"):
-                sinergia = f"{sinergia}/{carta.get('sinergia_secundaria')}"
-            sin = self.fonte_carta.render(sinergia, True, (214, 220, 228))
-            tela.blit(nome, (rect.x + 8, rect.y + 6))
-            tela.blit(sin, (rect.x + 8, rect.y + 30))
-
+            construtor_visual_cartucho.desenhar_cartucho(tela, carta, rect, destacada=destacado)

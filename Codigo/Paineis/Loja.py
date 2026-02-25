@@ -1,5 +1,6 @@
 import pygame
 
+from Codigo.Modulos.ConstrutorVisual import construtor_visual_cartucho
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 from Codigo.Prefabs.Botao import Botao
 
@@ -39,8 +40,6 @@ class Loja:
             pygame.draw.rect(tela, (150, 176, 214), rect, width=2, border_radius=10)
             if indice < len(cartas_loja):
                 carta = cartas_loja[indice]
-                tela.blit(self.fonte_carta.render(carta.get("nome", "Carta"), True, (240, 240, 240)), (rect.x + 8, rect.y + 6))
-                tela.blit(self.fonte_carta.render(carta.get("sinergia", "-"), True, (220, 220, 220)), (rect.x + 8, rect.y + 30))
-                tela.blit(self.fonte_carta.render(f"{carta.get('custo', 3)} ouro", True, (231, 208, 120)), (rect.x + 8, rect.y + 54))
+                construtor_visual_cartucho.desenhar_cartucho(tela, carta, rect)
 
         self.botao_roletar.desenhar(tela)
