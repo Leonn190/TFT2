@@ -28,3 +28,6 @@ class ServidorEstrategista:
 
     def mover_mapa_para_banco(self, partida, player_id, slot_id):
         return ativador_global.mover_mapa_para_banco(partida, player_id, slot_id)
+
+    def registrar_fim_batalha(self, partida, player_id):
+        return ativador_global.registrar_fim_batalha(partida, player_id)

@@ -10,8 +10,8 @@ class Banco:
         self.fonte_titulo = obter_fonte(30)
         self.fonte_carta = obter_fonte(22)
         self.limite_cartas = 10
-        self.largura_carta = 182
-        self.altura_carta = self.rect.height - 54
+        self.largura_carta = 194
+        self.altura_carta = self.rect.height - 46
         self.escala_hover = {}
 
     def _rects_slots(self, quantidade):
@@ -43,6 +43,9 @@ class Banco:
         pygame.draw.rect(tela, (158, 132, 102), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Banco", True, (236, 236, 236)), (self.rect.x + 12, self.rect.y + 8))
 
+        contador = self.fonte_carta.render(f"{len(cartas_banco)}/{self.limite_cartas}", True, (236, 236, 236))
+        tela.blit(contador, (self.rect.x + 140, self.rect.y + 14))
+
         if ouro is not None:
             txt_ouro = self.fonte_titulo.render(f"Ouro: {ouro}", True, (236, 218, 126))
             tela.blit(txt_ouro, (self.rect.right - txt_ouro.get_width() - 12, self.rect.y + 8))
@@ -73,12 +76,29 @@ class Banco:
                 card_rect = pygame.Rect(0, 0, largura, altura)
                 card_rect.center = (centro[0], centro[1] - (2 if indice == hover_indice else 0))
 
+                if indice == hover_indice:
+                    continue
+
                 construtor_visual_cartucho.desenhar_cartucho(tela, carta, card_rect, selecionada=selecionada)
+
+        if hover_indice is not None and hover_indice < len(cartas_visiveis):
+            carta = cartas_visiveis[hover_indice]
+            uid = carta.get("uid", f"carta-{hover_indice}") if isinstance(carta, dict) else getattr(carta, "uid", f"carta-{hover_indice}")
+            selecionada = uid in cartas_selecionadas
+            slot = slots[hover_indice]
+            atual = self.escala_hover.get(uid, 1.0)
+            base_rect = slot.move(0, -8) if selecionada else slot
+            centro = base_rect.center
+            largura = int(base_rect.width * atual)
+            altura = int(base_rect.height * atual)
+            card_rect = pygame.Rect(0, 0, largura, altura)
+            card_rect.center = (centro[0], centro[1] - 2)
+            construtor_visual_cartucho.desenhar_cartucho(tela, carta, card_rect, selecionada=selecionada, destacada=True)
 
         if cartas_drag:
             mouse = pygame.mouse.get_pos()
-            largura = 170
-            altura = 90
+            largura = 180
+            altura = 108
             espacamento = 18
             for i, carta in enumerate(cartas_drag):
                 ghost = pygame.Rect(mouse[0] - largura // 2 + i * espacamento, mouse[1] - altura // 2 + i * 6, largura, altura)

@@ -64,7 +64,9 @@ class Mapa:
                 cor_borda = (68, 98, 78)
                 pygame.draw.rect(tela, cor_slot, rect, border_radius=10)
                 pygame.draw.rect(tela, cor_borda, rect, width=2, border_radius=10)
-                txt = self.fonte_carta.render("Bloq.", True, (142, 148, 156))
+                custo = slot.get("custo_desbloqueio")
+                rotulo = f"{custo}g" if custo else "Bloq."
+                txt = self.fonte_carta.render(rotulo, True, (142, 148, 156))
                 tela.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
                 continue
 

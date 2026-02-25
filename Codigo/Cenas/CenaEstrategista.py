@@ -83,7 +83,8 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
     Parametros["Banco"].desenhar(TELA, jogador_ativo.banco, ouro=jogador_ativo.ouro)
-    Parametros["Loja"].desenhar(TELA, jogador_ativo.loja)
+    arrastando_banco = Parametros["DragBanco"] is not None
+    Parametros["Loja"].desenhar(TELA, jogador_ativo.loja, modo_venda=arrastando_banco)
 
     carta_drag = None
     if Parametros["DragBanco"] is not None:
@@ -93,7 +94,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     if carta_drag is not None:
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        card = pygame.Rect(mouse_x - 82, mouse_y - 44, 164, 88)
+        card = pygame.Rect(mouse_x - 90, mouse_y - 54, 180, 108)
         construtor_visual_cartucho.desenhar_cartucho(TELA, carta_drag, card, destacada=True, alpha=220)
 
     if jogador_ativo.player_id != "local-1":
@@ -195,7 +196,7 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
 
             if evento.type == pygame.MOUSEMOTION and Parametros["DragBanco"] is not None:
                 slot_mapa = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
-                if slot_mapa is not None and slot_mapa.get("desbloqueado") and slot_mapa.get("carta") is None:
+                if slot_mapa is not None and slot_mapa.get("desbloqueado"):
                     Parametros["SlotDestacado"] = slot_mapa.get("slot_id")
                 else:
                     Parametros["SlotDestacado"] = None
@@ -210,6 +211,8 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                             Parametros["DragBanco"]["indice"],
                             slot_mapa.get("slot_id", -1),
                         )
+                    elif Parametros["Loja"].rect.collidepoint(evento.pos):
+                        servidor_estrategista.vender_do_banco(partida, jogador_ativo.player_id, Parametros["DragBanco"]["indice"])
 
                 if Parametros["DragMapa"] is not None and Parametros["Banco"].rect.collidepoint(evento.pos):
                     servidor_estrategista.mover_mapa_para_banco(
@@ -229,9 +232,6 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 elif acao_loja["acao"] == "comprar":
                     servidor_estrategista.comprar_carta_loja(partida, jogador_ativo.player_id, acao_loja["indice"])
 
-            acao_banco = Parametros["Banco"].carta_por_posicao(evento.pos, jogador_ativo.banco) if evento.type == pygame.MOUSEBUTTONUP else None
-            if acao_banco and Parametros["Loja"].rect.collidepoint(evento.pos):
-                servidor_estrategista.vender_do_banco(partida, jogador_ativo.player_id, acao_banco["indice"])
 
         partida = Parametros.get("PartidaAtual")
         if partida is not None and acumulador_sync_ms >= partida.ping_ms:
