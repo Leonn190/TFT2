@@ -10,9 +10,9 @@ class Mapa:
         self.rect = pygame.Rect(int(largura_tela * 0.20), 120, int(largura_tela * 0.58), int(altura_tela * 0.56))
         self.fonte_titulo = obter_fonte(30, negrito=True)
         self.fonte_carta = obter_fonte(20)
-        self.raio_hex = 42
-        self.slots = self._gerar_grade_hex(linhas=4, colunas=7)
-        self.slots_validos = {(0, 1), (0, 2), (1, 0), (1, 1), (1, 3), (2, 1), (2, 2), (2, 4), (3, 0), (3, 2), (3, 3), (3, 5), (4, 1), (4, 2), (4, 4), (5, 0), (5, 1), (5, 3), (6, 1), (6, 2)}
+        self.raio_hex = 25
+        self.slots = self._gerar_grade_hex(linhas=8, colunas=12)
+        self.slots_validos = {(slot["q"], slot["r"]) for slot in self.slots}
 
     def _gerar_grade_hex(self, linhas, colunas):
         slots = []

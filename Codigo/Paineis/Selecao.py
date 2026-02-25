@@ -5,15 +5,14 @@ from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 class Selecao:
     def __init__(self, largura_tela=1920, altura_tela=1080):
-        self.rect = pygame.Rect(int(largura_tela * 0.20), int(altura_tela * 0.66), int(largura_tela * 0.58), int(altura_tela * 0.10))
-        self.fonte_titulo = obter_fonte(28)
+        self.rect = pygame.Rect(int(largura_tela * 0.24), int(altura_tela * 0.69), int(largura_tela * 0.50), int(altura_tela * 0.09))
         self.fonte_item = obter_fonte(18)
 
     def _slots(self):
         margem = 8
         largura_slot = (self.rect.width - margem * 4) // 5
-        altura_slot = self.rect.height - 22
-        y = self.rect.y + 12
+        altura_slot = self.rect.height - 14
+        y = self.rect.y + 7
         return [
             pygame.Rect(self.rect.x + i * (largura_slot + margem), y, largura_slot, altura_slot)
             for i in range(5)
@@ -25,9 +24,7 @@ class Selecao:
                 return indice
         return None
 
-    def desenhar(self, tela, selecao):
-        tela.blit(self.fonte_titulo.render("Seleção", True, (236, 236, 236)), (self.rect.x, self.rect.y - 34))
-
+    def desenhar(self, tela, selecao, carta_drag=None):
         dados = list(selecao[:5]) + [None] * (5 - len(selecao))
         for indice, (slot, carta) in enumerate(zip(self._slots(), dados)):
             bloqueado = indice >= 1
@@ -50,3 +47,14 @@ class Selecao:
             sinergia = self.fonte_item.render(carta.get("sinergia", "-"), True, (206, 212, 220))
             tela.blit(nome, (slot.x + 8, slot.y + 6))
             tela.blit(sinergia, (slot.x + 8, slot.y + 24))
+
+        if carta_drag is not None:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            largura_drag, altura_drag = 150, 52
+            card = pygame.Rect(mouse_x - largura_drag // 2, mouse_y - altura_drag // 2, largura_drag, altura_drag)
+            pygame.draw.rect(tela, (76, 84, 94), card, border_radius=8)
+            pygame.draw.rect(tela, (186, 196, 208), card, width=2, border_radius=8)
+            nome = self.fonte_item.render(carta_drag.get("nome", "Carta"), True, (244, 244, 244))
+            sinergia = self.fonte_item.render(carta_drag.get("sinergia", "-"), True, (220, 226, 234))
+            tela.blit(nome, (card.x + 8, card.y + 6))
+            tela.blit(sinergia, (card.x + 8, card.y + 26))

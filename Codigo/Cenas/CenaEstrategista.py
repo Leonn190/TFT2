@@ -52,7 +52,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     Parametros["Mapa"].desenhar(TELA, jogador_ativo.mapa, mostrar_grade=Parametros["Banco"].drag is not None, carta_drag=Parametros["Banco"].drag["carta"] if Parametros["Banco"].drag else None)
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
-    Parametros["Selecao"].desenhar(TELA, jogador_ativo.selecao)
+    Parametros["Selecao"].desenhar(TELA, jogador_ativo.selecao, carta_drag=Parametros["DragMapa"]["carta"] if Parametros["DragMapa"] else None)
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
     Parametros["Banco"].desenhar(TELA, jogador_ativo.banco)
     Parametros["Loja"].desenhar(TELA, jogador_ativo.loja)
