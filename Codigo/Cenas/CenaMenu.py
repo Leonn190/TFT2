@@ -19,6 +19,12 @@ from Codigo.Telas.TelaPareamento import InicializaTelaPareamento, TelaPareamento
 servico_pareamento = ServidorPareamento()
 
 
+def _atualizar_discord_presence_menu(INFO, modo):
+    discord_presence = INFO.get("DiscordPresence")
+    if discord_presence is not None:
+        discord_presence.atualizar_menu(modo)
+
+
 def TelaMenu(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill(obter_cor("fundo_menu"))
 
@@ -58,6 +64,7 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
     tocar_musica("Menu1")
 
     while ESTADOS["Menu"] and ESTADOS["Rodando"]:
+        _atualizar_discord_presence_menu(INFO, Parametros.get("ModoMenu", "base"))
         eventos = pygame.event.get()
         for evento in eventos:
             if evento.type == pygame.QUIT:

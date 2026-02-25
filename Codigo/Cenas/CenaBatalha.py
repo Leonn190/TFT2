@@ -38,6 +38,22 @@ def _registrar_resultado_batalha(INFO, resultado):
     INFO["IndiceBatalhaAtual"] = min(indice + 1, len(trilha))
 
 
+def _atualizar_discord_presence_batalha(INFO, simulador, jogador_local):
+    discord_presence = INFO.get("DiscordPresence")
+    if discord_presence is None:
+        return
+
+    inimigo = None
+    if simulador is not None:
+        inimigo_nome = getattr(getattr(simulador, "inimigo_base", None), "nome", None)
+        if inimigo_nome is not None:
+            class _TempInimigo:
+                nome = inimigo_nome
+            inimigo = _TempInimigo()
+
+    discord_presence.atualizar_batalha(jogador_local, inimigo=inimigo)
+
+
 def TelaBatalha(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill((18, 16, 24))
     simulador = Parametros.get("Simulador")
@@ -99,6 +115,7 @@ def BatalhaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
         simulador = Parametros.get("Simulador")
         partida = Parametros.get("PartidaAtual")
         jogador_local = _obter_jogador_local(partida) if partida is not None else None
+        _atualizar_discord_presence_batalha(INFO, simulador, jogador_local)
 
         if simulador is None:
             if jogador_local is not None:

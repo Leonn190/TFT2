@@ -5,6 +5,7 @@ import pygame
 from Codigo.Cenas.CenaBatalha import BatalhaLoop
 from Codigo.Cenas.CenaEstrategista import EstrategistaLoop
 from Codigo.Cenas.CenaMenu import MenuLoop
+from Codigo.Modulos.DiscordPresence import DiscordPresence
 from Codigo.Telas.TelaEscolhaSet import listar_sets_existentes
 from ConfigFixa import carregar_configuracoes_fixas
 from Codigo.Modulos.Sonoridades import VerificaSonoridade
@@ -26,6 +27,7 @@ VerificaSonoridade(CONFIG)
 CONFIG["SetsDisponiveis"] = sets_encontrados or ["BrawlStars"]
 
 INFO = {"Escuro": 100}
+INFO["DiscordPresence"] = DiscordPresence()
 
 # Dicionário que controla qual cena está ativa
 ESTADOS = {
@@ -48,6 +50,10 @@ while ESTADOS["Rodando"]:
     else:
         # Segurança: sempre volta para o menu se nenhum estado estiver ativo
         ESTADOS["Menu"] = True
+
+discord_presence = INFO.get("DiscordPresence")
+if discord_presence is not None:
+    discord_presence.desconectar()
 
 pygame.quit()
 sys.exit()

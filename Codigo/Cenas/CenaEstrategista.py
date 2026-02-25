@@ -59,6 +59,18 @@ def _tempo_restante_batalha(INFO, partida):
     return max(0, INFO.get("TempoRestanteBatalhaMs", _intervalo_batalha_ms(partida)))
 
 
+def _atualizar_discord_presence_estrategista(INFO, partida, jogador):
+    discord_presence = INFO.get("DiscordPresence")
+    if discord_presence is None:
+        return
+    discord_presence.atualizar_estrategista(
+        partida=partida,
+        jogador=jogador,
+        indice_batalha=INFO.get("IndiceBatalhaAtual", 0),
+        tempo_restante_ms=INFO.get("TempoRestanteBatalhaMs", _intervalo_batalha_ms(partida)),
+    )
+
+
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill((24, 26, 30))
 
@@ -165,6 +177,10 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
         intervalo_batalha_ms = _intervalo_batalha_ms(Parametros.get("PartidaAtual"))
         INFO["TempoRestanteBatalhaMs"] = max(0, INFO.get("TempoRestanteBatalhaMs", intervalo_batalha_ms) - dt_ms)
 
+        partida_atual = Parametros.get("PartidaAtual")
+        jogador_presence = _obter_jogador_por_id(partida_atual, Parametros.get("JogadorVisualizadoId", "local-1")) if partida_atual is not None else None
+        _atualizar_discord_presence_estrategista(INFO, partida_atual, jogador_presence)
+
         eventos = pygame.event.get()
         for evento in eventos:
             if evento.type == pygame.QUIT:
@@ -268,8 +284,8 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
             servidor_estrategista.sincronizar_partida(partida)
             acumulador_sync_ms = 0
 
-        if INFO.get("TempoRestanteBatalhaMs", INTERVALO_BATALHA_MS) <= 0:
-            INFO["TempoRestanteBatalhaMs"] = INTERVALO_BATALHA_MS
+        if INFO.get("TempoRestanteBatalhaMs", intervalo_batalha_ms) <= 0:
+            INFO["TempoRestanteBatalhaMs"] = intervalo_batalha_ms
             FecharIris(TELA, INFO, fps=CONFIG["FPS"])
             ESTADOS["Estrategista"] = False
             ESTADOS["Batalha"] = True
