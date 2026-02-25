@@ -4,111 +4,94 @@ from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 
 class Mapa:
+    LINHAS = 3
+    COLUNAS = 5
+
     def __init__(self, largura_tela=1920, altura_tela=1080):
         self.rect = pygame.Rect(int(largura_tela * 0.20), 120, int(largura_tela * 0.58), int(altura_tela * 0.56))
         self.fonte_titulo = obter_fonte(30, negrito=True)
-        self.fonte_carta = obter_fonte(20)
-        self._layout = []
+        self.fonte_carta = obter_fonte(19)
 
-    @staticmethod
-    def _sinergias_da_carta(carta):
-        sinergias = {carta.get("sinergia", "-")}
-        secundaria = carta.get("sinergia_secundaria")
-        if secundaria:
-            sinergias.add(secundaria)
-        return sinergias
+    def _slots(self, mapa_slots):
+        margem_x = 22
+        margem_top = 58
+        gap_x = 16
+        gap_y = 18
+        largura_total = self.rect.width - margem_x * 2 - gap_x * (self.COLUNAS - 1)
+        altura_total = self.rect.height - margem_top - 26 - gap_y * (self.LINHAS - 1)
+        largura_slot = largura_total // self.COLUNAS
+        altura_slot = altura_total // self.LINHAS
 
-    def _calcular_layout(self, cartas_mapa):
-        self._layout = []
-        x = self.rect.x + 18
-        y = self.rect.y + 52
-        largura_carta, altura_carta = 164, 74
-        gap_carta, gap_grupo, linha_h = 12, 34, 118
+        slots = []
+        for item in mapa_slots:
+            slot_id = item.get("slot_id", 0)
+            linha = slot_id // self.COLUNAS
+            coluna = slot_id % self.COLUNAS
+            x = self.rect.x + margem_x + coluna * (largura_slot + gap_x)
+            y = self.rect.y + margem_top + linha * (altura_slot + gap_y)
+            slots.append({"slot": item, "rect": pygame.Rect(x, y, largura_slot, altura_slot), "linha": linha, "coluna": coluna})
+        return slots
 
-        for grupo in cartas_mapa:
-            cartas = grupo.get("cartas", [])
-            largura_grupo = max(largura_carta, len(cartas) * largura_carta + max(0, len(cartas) - 1) * gap_carta)
-            if x + largura_grupo > self.rect.right - 16:
-                x = self.rect.x + 18
-                y += linha_h
-
-            grupo_rect = pygame.Rect(x - 6, y - 6, largura_grupo + 12, altura_carta + 30)
-            cards = []
-            for indice, carta in enumerate(cartas):
-                card_rect = pygame.Rect(x + indice * (largura_carta + gap_carta), y + 18, largura_carta, altura_carta)
-                cards.append({"carta": carta, "rect": card_rect})
-            self._layout.append({"grupo": grupo, "rect": grupo_rect, "cards": cards})
-            x += largura_grupo + gap_grupo
-
-    def carta_por_posicao(self, pos, cartas_mapa):
-        self._calcular_layout(cartas_mapa)
-        for item in self._layout:
-            for card in item["cards"]:
-                if card["rect"].collidepoint(pos):
-                    return {"grupo": item["grupo"], "carta": card["carta"], "rect": card["rect"]}
-        return None
-
-    def grupo_por_posicao(self, pos, cartas_mapa):
-        self._calcular_layout(cartas_mapa)
-        for item in self._layout:
+    def slot_por_posicao(self, pos, mapa_slots):
+        for item in self._slots(mapa_slots):
             if item["rect"].collidepoint(pos):
-                return item["grupo"]
+                return item["slot"]
         return None
 
-    def grupo_compativel_para_arraste(self, pos, cartas_mapa, cartas_drag):
-        if not cartas_drag:
-            return None
-        grupo = self.grupo_por_posicao(pos, cartas_mapa)
-        if grupo is None:
-            return None
-        sinergia = grupo.get("sinergia", "-")
-        if all(sinergia in self._sinergias_da_carta(carta) for carta in cartas_drag):
-            return grupo.get("grupo_id")
-        return None
-
-    def desenhar(self, tela, cartas_mapa, cartas_selecionadas=None, cartas_drag=None, grupo_destacado=None, tick_ms=0):
-        cartas_selecionadas = cartas_selecionadas or set()
+    def desenhar(self, tela, mapa_slots, carta_drag=None, slot_destacado=None):
         pygame.draw.rect(tela, (52, 56, 62), self.rect, border_radius=14)
         pygame.draw.rect(tela, (124, 132, 143), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Mapa", True, (236, 236, 236)), (self.rect.x + 14, self.rect.y + 8))
 
-        self._calcular_layout(cartas_mapa)
-        if not self._layout:
-            vazio = self.fonte_carta.render("Arraste cartas para montar sinergias", True, (184, 190, 198))
-            tela.blit(vazio, (self.rect.x + 18, self.rect.y + 66))
+        slots = self._slots(mapa_slots)
+        centros = {(item["linha"], item["coluna"]): item["rect"].center for item in slots}
 
-        pisca = (tick_ms // 180) % 2 == 0
-        for item in self._layout:
-            grupo = item["grupo"]
-            grupo_rect = item["rect"]
-            brilho = grupo_destacado == grupo.get("grupo_id") and pisca
-            cor_box = (82, 92, 66) if brilho else (64, 70, 78)
-            borda = (248, 220, 88) if brilho else (132, 140, 152)
-            pygame.draw.rect(tela, cor_box, grupo_rect, border_radius=10)
-            pygame.draw.rect(tela, borda, grupo_rect, width=2, border_radius=10)
-            titulo = self.fonte_carta.render(f"{grupo.get('sinergia', '-')} ({len(grupo.get('cartas', []))})", True, (226, 232, 238))
-            tela.blit(titulo, (grupo_rect.x + 8, grupo_rect.y + 2))
+        for item in slots:
+            for dl, dc in ((0, 1), (1, 0)):
+                destino = (item["linha"] + dl, item["coluna"] + dc)
+                if destino in centros:
+                    pygame.draw.line(tela, (112, 120, 132), item["rect"].center, centros[destino], 3)
 
-            for card in item["cards"]:
-                carta = card["carta"]
-                card_rect = card["rect"]
-                selecionada = carta.get("uid") in cartas_selecionadas
-                cor = (88, 96, 106)
-                cor_borda = (242, 214, 76) if selecionada else (178, 186, 196)
-                pygame.draw.rect(tela, cor, card_rect, border_radius=10)
-                pygame.draw.rect(tela, cor_borda, card_rect, width=2, border_radius=10)
-                texto_nome = self.fonte_carta.render(carta.get("nome", "Carta"), True, (245, 245, 245))
-                sinergia = carta.get("sinergia", "-")
-                if carta.get("sinergia_secundaria"):
-                    sinergia = f"{sinergia}/{carta.get('sinergia_secundaria')}"
-                texto_sin = self.fonte_carta.render(sinergia, True, (216, 220, 226))
-                tela.blit(texto_nome, (card_rect.x + 8, card_rect.y + 8))
-                tela.blit(texto_sin, (card_rect.x + 8, card_rect.y + 36))
+        for item in slots:
+            slot = item["slot"]
+            rect = item["rect"]
+            carta = slot.get("carta")
+            destacado = slot_destacado is not None and slot.get("slot_id") == slot_destacado
 
-        if cartas_drag:
-            mouse = pygame.mouse.get_pos()
-            for i, carta in enumerate(cartas_drag):
-                ghost = pygame.Rect(mouse[0] - 84 + i * 20, mouse[1] - 36 + i * 8, 164, 74)
-                pygame.draw.rect(tela, (74, 80, 88), ghost, border_radius=10)
-                pygame.draw.rect(tela, (250, 216, 90), ghost, width=2, border_radius=10)
-                tela.blit(self.fonte_carta.render(carta.get("nome", "Carta"), True, (242, 242, 242)), (ghost.x + 8, ghost.y + 8))
+            if not slot.get("desbloqueado"):
+                cor_slot = (40, 42, 47)
+                cor_borda = (80, 86, 96)
+            else:
+                cor_slot = (70, 76, 84) if carta is None else (86, 94, 104)
+                cor_borda = (246, 216, 84) if destacado else (164, 172, 184)
+
+            pygame.draw.rect(tela, cor_slot, rect, border_radius=10)
+            pygame.draw.rect(tela, cor_borda, rect, width=2, border_radius=10)
+
+            if not slot.get("desbloqueado"):
+                txt = self.fonte_carta.render("Bloq.", True, (142, 148, 156))
+                tela.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
+                continue
+
+            if carta is None:
+                txt = self.fonte_carta.render("Livre", True, (192, 198, 206))
+                tela.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
+                continue
+
+            nome = self.fonte_carta.render(carta.get("nome", "Carta"), True, (246, 246, 246))
+            sinergia = carta.get("sinergia", "-")
+            if carta.get("sinergia_secundaria"):
+                sinergia = f"{sinergia}/{carta.get('sinergia_secundaria')}"
+            sin = self.fonte_carta.render(sinergia, True, (214, 220, 228))
+            tela.blit(nome, (rect.x + 8, rect.y + 6))
+            tela.blit(sin, (rect.x + 8, rect.y + 30))
+
+        if carta_drag is not None:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            card = pygame.Rect(mouse_x - 82, mouse_y - 34, 164, 68)
+            pygame.draw.rect(tela, (76, 84, 94), card, border_radius=9)
+            pygame.draw.rect(tela, (186, 196, 208), card, width=2, border_radius=9)
+            nome = self.fonte_carta.render(carta_drag.get("nome", "Carta"), True, (244, 244, 244))
+            sinergia = self.fonte_carta.render(carta_drag.get("sinergia", "-"), True, (220, 226, 234))
+            tela.blit(nome, (card.x + 8, card.y + 6))
+            tela.blit(sinergia, (card.x + 8, card.y + 30))
