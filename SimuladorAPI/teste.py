@@ -60,16 +60,18 @@ def criar_cartas_teste():
                 str(linha.get("Sinergia 4") or "").strip(),
             ]
 
-            sinergia_principal = next((s for s in sinergias if s), "-")
-            sinergia_secundaria = next((s for s in sinergias[1:] if s), None)
+            sinergias_validas = [s for s in sinergias if s and s != "-"]
             raridade = raridade if raridade in CUSTO_POR_RARIDADE else "comum"
 
             cartas.append(
                 {
                     "id": f"brawl-{indice:03d}",
                     "nome": nome or f"Brawler {indice}",
-                    "sinergia": sinergia_principal,
-                    "sinergia_secundaria": sinergia_secundaria,
+                    "sinergia": sinergias_validas[0] if len(sinergias_validas) > 0 else "-",
+                    "sinergia_secundaria": sinergias_validas[1] if len(sinergias_validas) > 1 else None,
+                    "sinergia_terciaria": sinergias_validas[2] if len(sinergias_validas) > 2 else None,
+                    "sinergia_quaternaria": sinergias_validas[3] if len(sinergias_validas) > 3 else None,
+                    "sinergias": sinergias_validas,
                     "raridade": raridade,
                     "custo": CUSTO_POR_RARIDADE[raridade],
                     "imagem": _imagem_brawler(nome, imagens_por_chave),
