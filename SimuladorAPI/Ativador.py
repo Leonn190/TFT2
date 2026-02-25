@@ -215,15 +215,11 @@ class Ativador:
             jogador.slots_adquiridos = dados.get("slots_adquiridos", 1)
             jogador.chances_loja = deepcopy(dados.get("chances_loja", self._obter_chances_loja_por_slots(partida_id, 1)))
 
-        self.atualizar_outros_players(partida, player_local_id)
         partida.ping_ms = self.ping_ms
         partida.estoque_compartilhado = deepcopy(estado["estoque"])
         partida.seed_combate = estado.get("seed_combate", self._seed_padrao)
         partida.log_eventos = deepcopy(estado.get("log_eventos", []))
         return partida
-
-    def atualizar_outros_players(self, partida, player_local_id="local-1"):
-        return
 
     def comprar_carta_loja(self, partida, player_id, indice_loja):
         self._inicializar_partida(partida)
@@ -515,15 +511,30 @@ class Ativador:
         return True, "ok"
 
 
+    @staticmethod
+    def _vida_jogador_partida(partida, player_id):
+        for jogador in getattr(partida, "jogadores", []):
+            if getattr(jogador, "player_id", None) == player_id:
+                return getattr(jogador, "vida", None)
+        return None
+
     def registrar_fim_batalha(self, partida, player_id):
         self._inicializar_partida(partida)
         partida_id = self._chave(partida)
         estado_jogador = self._partidas[partida_id]["jogadores"][player_id]
+        vida_atual = self._vida_jogador_partida(partida, player_id)
+        if vida_atual is not None:
+            estado_jogador["vida"] = max(0, int(vida_atual))
         estado_jogador["batalhas_finalizadas"] = estado_jogador.get("batalhas_finalizadas", 0) + 1
         if estado_jogador["batalhas_finalizadas"] == 1:
             self._configurar_slots_pos_batalha(estado_jogador)
         self._atualizar_progresso_jogador(partida_id, estado_jogador)
-        self._registrar_evento(partida_id, player_id, "fim_batalha", {"total": estado_jogador["batalhas_finalizadas"]})
+        self._registrar_evento(
+            partida_id,
+            player_id,
+            "fim_batalha",
+            {"total": estado_jogador["batalhas_finalizadas"], "vida": estado_jogador["vida"]},
+        )
         return True, "ok"
 
 ativador_global = Ativador()

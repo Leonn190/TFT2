@@ -201,17 +201,25 @@ class GerenciadorPartidas:
 
         partida["jogadores"] = jogadores_estado
 
+    @staticmethod
+    def _resolver_status_partida(jogadores):
+        vivos = [j for j in jogadores if j["vida"] > 0]
+        if len(vivos) == 1:
+            return "finalizada", vivos[0]["player_id"], vivos
+        if len(vivos) == 0 and jogadores:
+            return "finalizada_empate", None, vivos
+        return "em_andamento", None, vivos
+
     def obter_estado_partida(self, partida_id):
         partida = self.partidas_ativas.get(partida_id)
         if not partida:
             return {"ok": False, "status": "partida_inexistente", "partida_id": partida_id}
 
         self._inicializar_estado_partida(partida_id)
-        vivos = [j for j in partida["jogadores"] if j["vida"] > 0]
-        vencedor = vivos[0]["player_id"] if len(vivos) == 1 else None
+        status, vencedor, vivos = self._resolver_status_partida(partida["jogadores"])
         return {
             "ok": True,
-            "status": "finalizada" if vencedor else "em_andamento",
+            "status": status,
             "partida_id": partida_id,
             "rodada": partida.get("rodada", 0),
             "jogadores_vivos": len(vivos),
@@ -260,7 +268,7 @@ class GerenciadorPartidas:
         self._inicializar_estado_partida(partida_id)
         for _ in range(max_rodadas):
             estado = self.obter_estado_partida(partida_id)
-            if estado.get("status") == "finalizada":
+            if estado.get("status") in {"finalizada", "finalizada_empate"}:
                 return estado
             self.simular_rodada(partida_id)
 
