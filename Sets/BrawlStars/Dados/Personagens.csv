@@ -1,0 +1,13 @@
+id,nome,raridade,sinergia,sinergia_secundaria,imagem
+bs-01,Shelly,comum,Dano,Controle,Brawl_Stars_iOS_ícone.jpg
+bs-02,Nita,comum,Invocador,LinhaDeFrente,Brawl_Stars_iOS_ícone.jpg
+bs-03,Colt,incomum,Dano,LongoAlcance,Brawl_Stars_iOS_ícone.jpg
+bs-04,Bull,incomum,Tanque,LinhaDeFrente,Brawl_Stars_iOS_ícone.jpg
+bs-05,Brock,raro,Explosivo,LongoAlcance,Brawl_Stars_iOS_ícone.jpg
+bs-06,El Primo,raro,Tanque,Engajador,Brawl_Stars_iOS_ícone.jpg
+bs-07,Barley,epico,Controle,Explosivo,Brawl_Stars_iOS_ícone.jpg
+bs-08,Poco,epico,Suporte,Curandeiro,Brawl_Stars_iOS_ícone.jpg
+bs-09,Rosa,lendario,Tanque,Curandeiro,Brawl_Stars_iOS_ícone.jpg
+bs-10,Rico,lendario,Dano,Truqueiro,Brawl_Stars_iOS_ícone.jpg
+bs-11,Darryl,mitico,Tanque,Assassino,Brawl_Stars_iOS_ícone.jpg
+bs-12,Penny,mitico,Invocador,Explosivo,Brawl_Stars_iOS_ícone.jpg

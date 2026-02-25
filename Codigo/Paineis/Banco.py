@@ -1,5 +1,6 @@
 import pygame
 
+from Codigo.Modulos.ConstrutorVisualCartucho import desenhar_cartucho
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 
@@ -75,15 +76,7 @@ class Banco:
                 card_rect = pygame.Rect(0, 0, largura, altura)
                 card_rect.center = (centro[0], centro[1] - (2 if indice == hover_indice else 0))
 
-                borda = (240, 214, 76) if selecionada else (176, 150, 122)
-                pygame.draw.rect(tela, (100, 78, 60), card_rect, border_radius=10)
-                pygame.draw.rect(tela, borda, card_rect, width=2, border_radius=10)
-                nome = carta.get("nome", "Carta")
-                sinergia = carta.get("sinergia", "-")
-                if carta.get("sinergia_secundaria"):
-                    sinergia = f"{sinergia}/{carta.get('sinergia_secundaria')}"
-                tela.blit(self.fonte_carta.render(nome, True, (240, 240, 240)), (card_rect.x + 8, card_rect.y + 8))
-                tela.blit(self.fonte_carta.render(sinergia, True, (206, 212, 220)), (card_rect.x + 8, card_rect.y + 34))
+                desenhar_cartucho(tela, card_rect, carta, selecionado=selecionada)
 
         if cartas_drag:
             mouse = pygame.mouse.get_pos()
@@ -92,6 +85,4 @@ class Banco:
             espacamento = 18
             for i, carta in enumerate(cartas_drag):
                 ghost = pygame.Rect(mouse[0] - largura // 2 + i * espacamento, mouse[1] - altura // 2 + i * 6, largura, altura)
-                pygame.draw.rect(tela, (74, 80, 88), ghost, border_radius=10)
-                pygame.draw.rect(tela, (250, 216, 90), ghost, width=2, border_radius=10)
-                tela.blit(self.fonte_carta.render(carta.get("nome", "Carta"), True, (242, 242, 242)), (ghost.x + 8, ghost.y + 8))
+                desenhar_cartucho(tela, ghost, carta, selecionado=True)

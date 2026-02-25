@@ -1,6 +1,7 @@
 import random
 from copy import deepcopy
 
+from Codigo.Classes.Personagem import Personagem
 from SimuladorAPI.teste import criar_cartas_teste
 
 
@@ -21,7 +22,7 @@ class Ativador:
         if partida_id in self._partidas:
             return
 
-        cartas_base = criar_cartas_teste()
+        cartas_base = criar_cartas_teste(partida.set_escolhido or "BrawlStars")
         estoque = {carta["id"]: 5 for carta in cartas_base}
         catalogo = {carta["id"]: carta for carta in cartas_base}
 
@@ -38,6 +39,18 @@ class Ativador:
             estado = self._partidas[partida_id]["jogadores"][jogador.player_id]
             estado["banco"] = self._comprar_cartas_estoque(partida_id, quantidade=6)
             estado["loja"] = self._comprar_cartas_estoque(partida_id, quantidade=3)
+
+    @staticmethod
+    def _carta_como_dict(carta):
+        if isinstance(carta, Personagem):
+            return carta.para_dicionario()
+        return carta
+
+    @classmethod
+    def _carta_get(cls, carta, chave, padrao=None):
+        if isinstance(carta, Personagem):
+            return carta.para_dicionario().get(chave, padrao)
+        return carta.get(chave, padrao)
 
     def _estado_inicial_jogador(self):
         return {
@@ -59,6 +72,9 @@ class Ativador:
         self._proximo_uid_carta += 1
         return clone
 
+    def _criar_personagem(self, carta_dict):
+        return Personagem.de_dicionario(carta_dict)
+
     def _comprar_cartas_estoque(self, partida_id, quantidade):
         partida_estado = self._partidas[partida_id]
         cartas = []
@@ -72,7 +88,8 @@ class Ativador:
         return cartas
 
     def _devolver_ao_estoque(self, partida_id, carta):
-        self._partidas[partida_id]["estoque"][carta["id"]] += 1
+        carta_dict = self._carta_como_dict(carta)
+        self._partidas[partida_id]["estoque"][carta_dict["id"]] += 1
 
     def sincronizar_partida(self, partida, player_local_id="local-1"):
         self._inicializar_partida(partida)
@@ -83,9 +100,12 @@ class Ativador:
             dados = estado["jogadores"].setdefault(jogador.player_id, self._estado_inicial_jogador())
             jogador.vida = dados["vida"]
             jogador.ouro = dados["ouro"]
-            jogador.banco = deepcopy(dados["banco"])
+            jogador.banco = [self._carta_como_dict(carta) for carta in dados["banco"]]
             jogador.loja = deepcopy(dados["loja"])
-            jogador.mapa = deepcopy(dados["mapa"])
+            jogador.mapa = [
+                {**slot, "carta": self._carta_como_dict(slot.get("carta")) if slot.get("carta") else None}
+                for slot in dados["mapa"]
+            ]
             jogador.selecao = deepcopy(dados["selecao"])
             jogador.sinergias = deepcopy(dados["sinergias"])
 
@@ -116,7 +136,7 @@ class Ativador:
             return False, "banco_cheio"
 
         estado_jogador["ouro"] -= custo
-        estado_jogador["banco"].append(carta)
+        estado_jogador["banco"].append(self._criar_personagem(carta))
         del estado_jogador["loja"][indice_loja]
         return True, "ok"
 
@@ -145,10 +165,10 @@ class Ativador:
         self._devolver_ao_estoque(partida_id, carta)
         return True, "ok"
 
-    @staticmethod
-    def _sinergias_carta(carta):
-        sinergias = [carta.get("sinergia", "-")]
-        sinergia_secundaria = carta.get("sinergia_secundaria")
+    @classmethod
+    def _sinergias_carta(cls, carta):
+        sinergias = [cls._carta_get(carta, "sinergia", "-")]
+        sinergia_secundaria = cls._carta_get(carta, "sinergia_secundaria")
         if sinergia_secundaria:
             sinergias.append(sinergia_secundaria)
         return {sinergia for sinergia in sinergias if sinergia and sinergia != "-"}
@@ -200,7 +220,7 @@ class Ativador:
     def _remover_carta_mapa_por_uid(self, estado_jogador, carta_uid):
         for slot in estado_jogador["mapa"]:
             carta = slot.get("carta")
-            if carta is not None and carta.get("uid") == carta_uid:
+            if carta is not None and self._carta_get(carta, "uid") == carta_uid:
                 slot["carta"] = None
                 return carta
         return None
@@ -210,7 +230,7 @@ class Ativador:
         restantes = list(card_uids)
 
         for uid in list(restantes):
-            indice_banco = next((i for i, carta in enumerate(estado_jogador["banco"]) if carta.get("uid") == uid), -1)
+            indice_banco = next((i for i, carta in enumerate(estado_jogador["banco"]) if self._carta_get(carta, "uid") == uid), -1)
             if indice_banco >= 0:
                 retiradas.append(estado_jogador["banco"].pop(indice_banco))
                 restantes.remove(uid)

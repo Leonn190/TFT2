@@ -1,6 +1,7 @@
 import pygame
 
 from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, FecharIris
+from Codigo.Modulos.ConstrutorVisualCartucho import desenhar_cartucho
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 from Codigo.Paineis.Banco import Banco
 from Codigo.Paineis.Loja import Loja
@@ -92,16 +93,8 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     if carta_drag is not None:
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        card = pygame.Rect(mouse_x - 82, mouse_y - 34, 164, 68)
-        pygame.draw.rect(TELA, (76, 84, 94), card, border_radius=9)
-        pygame.draw.rect(TELA, (186, 196, 208), card, width=2, border_radius=9)
-        nome = Parametros["Mapa"].fonte_carta.render(carta_drag.get("nome", "Carta"), True, (244, 244, 244))
-        sinergia = carta_drag.get("sinergia", "-")
-        if carta_drag.get("sinergia_secundaria"):
-            sinergia = f"{sinergia}/{carta_drag.get('sinergia_secundaria')}"
-        txt_sinergia = Parametros["Mapa"].fonte_carta.render(sinergia, True, (220, 226, 234))
-        TELA.blit(nome, (card.x + 8, card.y + 6))
-        TELA.blit(txt_sinergia, (card.x + 8, card.y + 30))
+        card = pygame.Rect(mouse_x - 82, mouse_y - 48, 164, 96)
+        desenhar_cartucho(TELA, card, carta_drag, selecionado=True)
 
     if jogador_ativo.player_id != "local-1":
         aviso = obter_fonte(22, negrito=True).render(f"Visualizando: {jogador_ativo.nome}", True, (204, 210, 220))

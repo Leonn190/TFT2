@@ -1,5 +1,6 @@
 import pygame
 
+from Codigo.Modulos.ConstrutorVisualCartucho import desenhar_cartucho
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 
@@ -78,11 +79,5 @@ class Mapa:
                 tela.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
                 continue
 
-            nome = self.fonte_carta.render(carta.get("nome", "Carta"), True, (246, 246, 246))
-            sinergia = carta.get("sinergia", "-")
-            if carta.get("sinergia_secundaria"):
-                sinergia = f"{sinergia}/{carta.get('sinergia_secundaria')}"
-            sin = self.fonte_carta.render(sinergia, True, (214, 220, 228))
-            tela.blit(nome, (rect.x + 8, rect.y + 6))
-            tela.blit(sin, (rect.x + 8, rect.y + 30))
+            desenhar_cartucho(tela, rect, carta, selecionado=destacado)
 

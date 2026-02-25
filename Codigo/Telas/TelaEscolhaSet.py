@@ -1,19 +1,25 @@
 from pathlib import Path
 
+import pygame
+
 from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 from Codigo.Prefabs.Botao import Botao
 
 
-def listar_sets_existentes(caminho_sets="Recursos/Sets"):
+def listar_sets_existentes(caminho_sets="Sets"):
     raiz = Path(caminho_sets)
     if not raiz.exists() or not raiz.is_dir():
         return []
+    if (raiz / "BrawlStars").is_dir():
+        return ["BrawlStars"]
+    return []
 
-    return sorted(
-        pasta.name
-        for pasta in raiz.iterdir()
-        if pasta.is_dir() and not pasta.name.startswith(".")
-    )
+
+def _carregar_icone_brawl():
+    caminho = Path("Sets/BrawlStars/Imagens/Brawl_Stars_iOS_ícone.jpg")
+    if not caminho.exists():
+        return None
+    return pygame.image.load(str(caminho)).convert_alpha()
 
 
 def InicializaTelaEscolhaSet(CONFIG):
@@ -37,6 +43,7 @@ def InicializaTelaEscolhaSet(CONFIG):
         "BotoesSets": botoes_sets,
         "BotaoVoltar": botao_voltar,
         "BotaoBuscar": botao_buscar,
+        "IconeBrawl": _carregar_icone_brawl(),
     }
 
 
@@ -54,6 +61,9 @@ def TelaEscolhaSet(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     for botao in Parametros["EscolhaSet"]["BotoesSets"]:
         botao.desenhar(TELA)
+        if botao.texto == "BrawlStars" and Parametros["EscolhaSet"].get("IconeBrawl") is not None:
+            icone = pygame.transform.smoothscale(Parametros["EscolhaSet"]["IconeBrawl"], (52, 52))
+            TELA.blit(icone, (botao.rect.x + 12, botao.rect.centery - 26))
 
     Parametros["EscolhaSet"]["BotaoVoltar"].desenhar(TELA)
     Parametros["EscolhaSet"]["BotaoBuscar"].desenhar(TELA)
