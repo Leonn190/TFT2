@@ -121,7 +121,10 @@ class Sinergias:
                 nomes_em_campo.setdefault(sinergia, set()).add(nome)
 
         linhas = []
-        for nome, quantidade in sorted(contagem_por_sinergia.items(), key=lambda item: (-item[1], item[0])):
+        for nome, quantidade in sorted(
+            contagem_por_sinergia.items(),
+            key=lambda item: (-(item[1] >= (dados["metadados"].get(item[0], {}).get("breakpoints", [1])[0] if dados["metadados"].get(item[0], {}).get("breakpoints") else 1)), -item[1], item[0]),
+        ):
             meta = dados["metadados"].get(nome, {"breakpoints": [], "descricao": ""})
             breakpoints = list(meta.get("breakpoints", []))
             proximo = next((nivel for nivel in breakpoints if quantidade < nivel), breakpoints[-1] if breakpoints else quantidade)
@@ -159,7 +162,7 @@ class Sinergias:
 
         superficie = pygame.Surface(tamanho, pygame.SRCALPHA)
         borda = CORES_RARIDADE.get(str(carta.get("raridade", "comum")).lower(), CORES_RARIDADE["comum"])
-        pygame.draw.rect(superficie, borda, superficie.get_rect(), border_radius=6)
+        pygame.draw.rect(superficie, (0, 0, 0), superficie.get_rect(), width=1)
 
         imagem_path = Path(str(carta.get("imagem") or ""))
         if imagem_path.exists():
@@ -170,7 +173,7 @@ class Sinergias:
             superficie.blit(imagem, (3, 3))
         else:
             cor = (48, 54, 64, 200 if em_campo else 120)
-            pygame.draw.rect(superficie, cor, pygame.Rect(3, 3, 36, 36), border_radius=4)
+            pygame.draw.rect(superficie, cor, pygame.Rect(3, 3, 36, 36))
 
         if not em_campo:
             sombra = pygame.Surface((36, 36), pygame.SRCALPHA)
@@ -203,8 +206,6 @@ class Sinergias:
             txt = self.fonte_item.render(texto_linha, True, cor)
             tela.blit(txt, (self.rect.x + 12, y))
 
-            txt_qtd = self.fonte_item.render(f"x{quantidade}", True, (170, 176, 188))
-            tela.blit(txt_qtd, (self.rect.right - txt_qtd.get_width() - 10, y))
             y += 32
 
         if hover_info:

@@ -10,8 +10,8 @@ class Banco:
         self.fonte_titulo = obter_fonte(30)
         self.fonte_carta = obter_fonte(22)
         self.limite_cartas = 10
-        self.largura_carta = 206
-        self.altura_carta = self.rect.height - 46
+        self.largura_carta = 194
+        self.altura_carta = self.rect.height - 52
         self.escala_hover = {}
 
     def _rects_slots(self, quantidade):
@@ -54,7 +54,12 @@ class Banco:
         slots = self._rects_slots(max(6, len(cartas_visiveis)))
         mouse = pygame.mouse.get_pos()
         hover_indice = None
+        cartas_drag_uids = {str(c.get("uid")) for c in (cartas_drag or []) if isinstance(c, dict) and c.get("uid") is not None}
         for indice in range(min(len(cartas_visiveis), len(slots)) - 1, -1, -1):
+            carta = cartas_visiveis[indice]
+            uid_hover = str(carta.get("uid")) if isinstance(carta, dict) else str(getattr(carta, "uid", ""))
+            if uid_hover in cartas_drag_uids:
+                continue
             if slots[indice].collidepoint(mouse):
                 hover_indice = indice
                 break
@@ -62,7 +67,11 @@ class Banco:
         for indice, slot in enumerate(slots):
             if indice < len(cartas_visiveis):
                 carta = cartas_visiveis[indice]
-                uid = carta.get("uid", f"carta-{indice}") if isinstance(carta, dict) else getattr(carta, "uid", f"carta-{indice}")
+                uid_raw = carta.get("uid", f"carta-{indice}") if isinstance(carta, dict) else getattr(carta, "uid", f"carta-{indice}")
+                uid_str = str(uid_raw)
+                if uid_str in cartas_drag_uids:
+                    continue
+                uid = uid_raw
                 atual = self.escala_hover.get(uid, 1.0)
                 alvo = 1.04 if indice == hover_indice else 1.0
                 atual += (alvo - atual) * 0.28
@@ -80,6 +89,10 @@ class Banco:
                     continue
 
                 construtor_visual_cartucho.desenhar_cartucho(tela, carta, card_rect, selecionada=selecionada)
+
+        if hover_indice is not None and hover_indice < len(cartas_visiveis):
+            if str((cartas_visiveis[hover_indice] or {}).get("uid")) in cartas_drag_uids:
+                hover_indice = None
 
         if hover_indice is not None and hover_indice < len(cartas_visiveis):
             carta = cartas_visiveis[hover_indice]

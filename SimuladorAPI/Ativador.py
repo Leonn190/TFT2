@@ -54,7 +54,7 @@ class Ativador:
         for jogador in partida.jogadores:
             estado = self._partidas[partida_id]["jogadores"][jogador.player_id]
             self._atualizar_progresso_jogador(estado)
-            estado["banco"] = self._comprar_cartas_estoque(partida_id, quantidade=6)
+            estado["banco"] = self._comprar_cartas_estoque(partida_id, quantidade=3, raridades_bloqueadas={"epico", "lendario", "mitico"})
             estado["loja"] = self._comprar_cartas_estoque(partida_id, quantidade=3, chances_loja=estado.get("chances_loja"))
 
     def _estado_inicial_jogador(self):
@@ -124,11 +124,16 @@ class Ativador:
         self._proximo_uid_carta += 1
         return clone
 
-    def _comprar_cartas_estoque(self, partida_id, quantidade, chances_loja=None):
+    def _comprar_cartas_estoque(self, partida_id, quantidade, chances_loja=None, raridades_bloqueadas=None):
         partida_estado = self._partidas[partida_id]
+        raridades_bloqueadas = {str(r).strip().lower() for r in (raridades_bloqueadas or set())}
         cartas = []
         for _ in range(quantidade):
-            disponiveis = [cid for cid, qtd in partida_estado["estoque"].items() if qtd > 0]
+            disponiveis = [
+                cid
+                for cid, qtd in partida_estado["estoque"].items()
+                if qtd > 0 and self._raridade_carta(partida_estado["catalogo"].get(cid, {})) not in raridades_bloqueadas
+            ]
             if not disponiveis:
                 break
 
