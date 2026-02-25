@@ -1,7 +1,8 @@
+import csv
+import unicodedata
 from pathlib import Path
 
 
-RARIDADES = ["comum", "incomum", "raro", "epico", "lendario", "mitico"]
 CUSTO_POR_RARIDADE = {
     "comum": 1,
     "incomum": 2,
@@ -11,61 +12,77 @@ CUSTO_POR_RARIDADE = {
     "mitico": 6,
 }
 
-BRAWLERS_BASE = [
-    ("Shelly", "Atirador", "Controle", "comum"),
-    ("Colt", "Atirador", "Dano", "comum"),
-    ("Poco", "Suporte", "Místico", "comum"),
-    ("Nita", "Invocador", "Lutador", "comum"),
-    ("Bull", "Tanque", "Lutador", "incomum"),
-    ("Jessie", "Invocador", "Controle", "incomum"),
-    ("Rosa", "Tanque", "Lutador", "incomum"),
-    ("El Primo", "Tanque", "Mergulho", "incomum"),
-    ("Barley", "Arremessador", "Controle", "raro"),
-    ("Penny", "Invocador", "Arremessador", "raro"),
-    ("Dynamike", "Arremessador", "Dano", "raro"),
-    ("Bo", "Controle", "Atirador", "raro"),
-    ("Bibi", "Lutador", "Mergulho", "epico"),
-    ("Pam", "Suporte", "Tanque", "epico"),
-    ("Frank", "Tanque", "Controle", "epico"),
-    ("Piper", "Atirador", "Crítico", "epico"),
-    ("Spike", "Mítico", "Controle", "lendario"),
-    ("Sandy", "Místico", "Suporte", "lendario"),
-    ("Leon", "Mergulho", "Assassino", "lendario"),
-    ("Meg", "Tanque", "Tecnologia", "mitico"),
-    ("Chester", "Caótico", "Místico", "mitico"),
-    ("Cordelius", "Místico", "Assassino", "mitico"),
-]
+QUANTIDADE_POR_RARIDADE = {
+    "comum": 12,
+    "incomum": 11,
+    "raro": 9,
+    "epico": 8,
+    "lendario": 5,
+    "mitico": 4,
+}
+
+ARQUIVO_BRAWLERS = Path("Sets/BrawlStars/Dados/Personagens.csv")
+PASTA_IMAGENS = Path("Sets/BrawlStars/Imagens/Personagens")
 
 
-def _slug(nome):
-    nome = nome.lower().replace(" ", "")
-    mapeamentos = {
-        "elprimo": "elprimo",
-    }
-    return mapeamentos.get(nome, nome)
+def _normalizar(texto):
+    texto = unicodedata.normalize("NFKD", str(texto or ""))
+    texto = "".join(char for char in texto if not unicodedata.combining(char))
+    return "".join(char.lower() for char in texto if char.isalnum())
+
+
+def _indice_imagens():
+    imagens = {}
+    for arquivo in PASTA_IMAGENS.glob("*_portrait.png"):
+        chave = _normalizar(arquivo.stem.replace("_portrait", ""))
+        imagens[chave] = arquivo
+    return imagens
+
+
+def _imagem_brawler(nome, imagens_por_chave):
+    arquivo = imagens_por_chave.get(_normalizar(nome))
+    return str(arquivo) if arquivo is not None else ""
 
 
 def criar_cartas_teste():
-    raiz_imagens = Path("Sets/BrawlStars/Imagens/Personagens")
+    imagens_por_chave = _indice_imagens()
     cartas = []
 
-    for indice, (nome, sinergia, sinergia_secundaria, raridade) in enumerate(BRAWLERS_BASE, start=1):
-        slug = _slug(nome)
-        caminho_imagem = raiz_imagens / f"{slug}_portrait.png"
-        if not caminho_imagem.exists():
-            caminho_imagem = raiz_imagens / f"{nome.lower()}_portrait.png"
+    with ARQUIVO_BRAWLERS.open(encoding="utf-8-sig", newline="") as arquivo:
+        leitor = csv.DictReader(arquivo)
+        for indice, linha in enumerate(leitor, start=1):
+            nome = str(linha.get("Nome") or "").strip()
+            raridade = str(linha.get("Raridade") or "comum").strip().lower()
+            sinergias = [
+                str(linha.get("Sinergia 1") or "").strip(),
+                str(linha.get("Sinergia 2") or "").strip(),
+                str(linha.get("Sinergia 3") or "").strip(),
+                str(linha.get("Sinergia 4") or "").strip(),
+            ]
 
-        cartas.append(
-            {
-                "id": f"brawl-{indice:03d}",
-                "nome": nome,
-                "sinergia": sinergia,
-                "sinergia_secundaria": sinergia_secundaria,
-                "raridade": raridade,
-                "custo": CUSTO_POR_RARIDADE[raridade],
-                "imagem": str(caminho_imagem),
-                "set": "BrawlStars",
-            }
-        )
+            sinergia_principal = next((s for s in sinergias if s), "-")
+            sinergia_secundaria = next((s for s in sinergias[1:] if s), None)
+            raridade = raridade if raridade in CUSTO_POR_RARIDADE else "comum"
+
+            cartas.append(
+                {
+                    "id": f"brawl-{indice:03d}",
+                    "nome": nome or f"Brawler {indice}",
+                    "sinergia": sinergia_principal,
+                    "sinergia_secundaria": sinergia_secundaria,
+                    "raridade": raridade,
+                    "custo": CUSTO_POR_RARIDADE[raridade],
+                    "imagem": _imagem_brawler(nome, imagens_por_chave),
+                    "set": "BrawlStars",
+                }
+            )
 
     return cartas
+
+
+def criar_estoque_por_raridade(cartas):
+    estoque = {}
+    for carta in cartas:
+        raridade = str(carta.get("raridade", "comum")).lower()
+        estoque[carta["id"]] = QUANTIDADE_POR_RARIDADE.get(raridade, QUANTIDADE_POR_RARIDADE["comum"])
+    return estoque

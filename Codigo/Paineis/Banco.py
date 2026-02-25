@@ -78,7 +78,7 @@ class Banco:
         if cartas_drag:
             mouse = pygame.mouse.get_pos()
             largura = 170
-            altura = 78
+            altura = 90
             espacamento = 18
             for i, carta in enumerate(cartas_drag):
                 ghost = pygame.Rect(mouse[0] - largura // 2 + i * espacamento, mouse[1] - altura // 2 + i * 6, largura, altura)

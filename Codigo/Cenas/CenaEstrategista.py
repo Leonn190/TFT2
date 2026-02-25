@@ -93,7 +93,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     if carta_drag is not None:
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        card = pygame.Rect(mouse_x - 82, mouse_y - 34, 164, 68)
+        card = pygame.Rect(mouse_x - 82, mouse_y - 44, 164, 88)
         construtor_visual_cartucho.desenhar_cartucho(TELA, carta_drag, card, destacada=True, alpha=220)
 
     if jogador_ativo.player_id != "local-1":

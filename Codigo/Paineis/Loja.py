@@ -15,7 +15,7 @@ class Loja:
     def _rects_cartas(self):
         margem = 10
         largura = (self.rect.width - margem * 4) // 3
-        altura = 82
+        altura = 92
         y = self.rect.y + 40
         return [pygame.Rect(self.rect.x + margem + i * (largura + margem), y, largura, altura) for i in range(3)]
 
