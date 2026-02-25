@@ -18,7 +18,24 @@ class Player:
         self.sinergias = []
         self.loja = []
 
+    @staticmethod
+    def _serializar_lista_cartas(lista_cartas):
+        serializadas = []
+        for carta in lista_cartas:
+            if hasattr(carta, "para_dict"):
+                serializadas.append(carta.para_dict())
+            else:
+                serializadas.append(carta)
+        return serializadas
+
     def para_json(self):
+        mapa_serializado = []
+        for slot in self.mapa:
+            carta = slot.get("carta")
+            if hasattr(carta, "para_dict"):
+                carta = carta.para_dict()
+            mapa_serializado.append({**slot, "carta": carta})
+
         return {
             "player_id": self.player_id,
             "nome": self.nome,
@@ -27,9 +44,9 @@ class Player:
             "categoria": self.categoria,
             "vida": self.vida,
             "ouro": self.ouro,
-            "banco": self.banco,
-            "mapa": self.mapa,
+            "banco": self._serializar_lista_cartas(self.banco),
+            "mapa": mapa_serializado,
             "selecao": self.selecao,
             "sinergias": self.sinergias,
-            "loja": self.loja,
+            "loja": self._serializar_lista_cartas(self.loja),
         }
