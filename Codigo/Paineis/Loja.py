@@ -15,7 +15,7 @@ class Loja:
     def _rects_cartas(self):
         margem = 10
         largura = (self.rect.width - margem * 4) // 3
-        altura = 92
+        altura = 108
         y = self.rect.y + 40
         return [pygame.Rect(self.rect.x + margem + i * (largura + margem), y, largura, altura) for i in range(3)]
 
@@ -30,7 +30,14 @@ class Loja:
 
         return None
 
-    def desenhar(self, tela, cartas_loja):
+    def desenhar(self, tela, cartas_loja, modo_venda=False):
+        if modo_venda:
+            pygame.draw.rect(tela, (96, 38, 38), self.rect, border_radius=14)
+            pygame.draw.rect(tela, (198, 112, 112), self.rect, width=2, border_radius=14)
+            texto = self.fonte_titulo.render("Vender", True, (252, 236, 236))
+            tela.blit(texto, (self.rect.centerx - texto.get_width() // 2, self.rect.centery - texto.get_height() // 2))
+            return
+
         pygame.draw.rect(tela, (40, 54, 78), self.rect, border_radius=14)
         pygame.draw.rect(tela, (122, 146, 186), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Loja", True, (236, 236, 236)), (self.rect.x + 12, self.rect.y + 8))

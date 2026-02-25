@@ -22,6 +22,35 @@ class ConstrutorVisualCartucho:
         self.fonte_sinergia = obter_fonte(14)
 
     @staticmethod
+    def _blitar_texto_com_borda(surface, fonte, texto, cor_texto, cor_borda, posicao):
+        texto_surface = fonte.render(texto, True, cor_texto)
+        x, y = posicao
+        for dx, dy in ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)):
+            surface.blit(fonte.render(texto, True, cor_borda), (x + dx, y + dy))
+        surface.blit(texto_surface, posicao)
+
+    def _listar_sinergias(self, carta):
+        sinergias = []
+        for campo in ("sinergia", "sinergia_secundaria", "sinergia_terciaria", "sinergia_quaternaria"):
+            valor = self._obter_campo(carta, campo)
+            if valor and valor != "-":
+                sinergias.append(str(valor))
+
+        extras = self._obter_campo(carta, "sinergias", [])
+        if isinstance(extras, (list, tuple)):
+            for item in extras:
+                if item and item != "-":
+                    sinergias.append(str(item))
+
+        unicas = []
+        vistos = set()
+        for sinergia in sinergias:
+            if sinergia not in vistos:
+                unicas.append(sinergia)
+                vistos.add(sinergia)
+        return unicas[:4]
+
+    @staticmethod
     def _obter_campo(carta, campo, padrao=None):
         if carta is None:
             return padrao
@@ -66,20 +95,14 @@ class ConstrutorVisualCartucho:
         card_surface.blit(barra_nome, (2, rect.height - 34))
 
         nome = str(self._obter_campo(carta, "nome", "Carta"))
-        texto_nome = self.fonte_nome.render(nome, True, (246, 246, 246))
-        card_surface.blit(texto_nome, (8, rect.height - 30))
+        self._blitar_texto_com_borda(card_surface, self.fonte_nome, nome, (246, 246, 246), (0, 0, 0), (8, rect.height - 30))
 
-        sinergias = [self._obter_campo(carta, "sinergia", "-")]
-        secundaria = self._obter_campo(carta, "sinergia_secundaria")
-        if secundaria:
-            sinergias.append(secundaria)
-
-        sinergias = [str(s) for s in sinergias if s and s != "-"]
-        for indice, sinergia in enumerate(sinergias[:3]):
+        sinergias = self._listar_sinergias(carta)
+        for indice, sinergia in enumerate(sinergias):
             txt = self.fonte_sinergia.render(sinergia, True, (242, 242, 242))
             pos_x = rect.width - txt.get_width() - 8
             pos_y = 8 + indice * (txt.get_height() + 2)
-            card_surface.blit(txt, (pos_x, pos_y))
+            self._blitar_texto_com_borda(card_surface, self.fonte_sinergia, sinergia, (242, 242, 242), (0, 0, 0), (pos_x, pos_y))
 
         tela.blit(card_surface, rect.topleft)
 

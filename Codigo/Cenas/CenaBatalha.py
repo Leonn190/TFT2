@@ -4,10 +4,12 @@ from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, F
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 from Codigo.Prefabs.Botao import Botao
 from Codigo.Server.Pareamento import ServidorPareamento
+from Codigo.Server.ServerEstrategista import ServidorEstrategista
 from Codigo.Telas.Opcoes import InicializaTelaOpcoes, ProcessarEventosTelaOpcoes, TelaOpcoes
 
 
 servico_pareamento = ServidorPareamento()
+servidor_estrategista = ServidorEstrategista()
 
 
 def _obter_jogador_local(partida):
@@ -85,6 +87,8 @@ def BatalhaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 if jogador_local is not None:
                     jogador_local.vida = min(100, jogador_local.vida + 2)
                 _registrar_resultado_batalha(INFO, "vitoria")
+                if partida is not None and jogador_local is not None:
+                    servidor_estrategista.registrar_fim_batalha(partida, jogador_local.player_id)
                 FecharIris(TELA, INFO, fps=CONFIG["FPS"])
                 ESTADOS["Batalha"] = False
                 ESTADOS["Estrategista"] = True
@@ -96,6 +100,8 @@ def BatalhaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 if jogador_local is not None:
                     jogador_local.vida = max(0, jogador_local.vida - 10)
                 _registrar_resultado_batalha(INFO, "derrota")
+                if partida is not None and jogador_local is not None:
+                    servidor_estrategista.registrar_fim_batalha(partida, jogador_local.player_id)
                 FecharIris(TELA, INFO, fps=CONFIG["FPS"])
                 ESTADOS["Batalha"] = False
                 ESTADOS["Estrategista"] = True

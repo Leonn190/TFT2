@@ -42,16 +42,33 @@ class Ativador:
     def _estado_inicial_jogador(self):
         return {
             "vida": 100,
-            "ouro": 20,
+            "ouro": 1000,
             "banco": [],
             "loja": [],
             "mapa": [
-                {"slot_id": slot_id, "desbloqueado": slot_id == 0, "carta": None}
+                {"slot_id": slot_id, "desbloqueado": slot_id % 5 == 0, "custo_desbloqueio": 0 if slot_id % 5 == 0 else None, "carta": None}
                 for slot_id in range(15)
             ],
+            "batalhas_finalizadas": 0,
             "selecao": [],
             "sinergias": [],
         }
+
+    @staticmethod
+    def _custo_coluna_mapa(coluna):
+        custos = {1: 10, 2: 15, 3: 20, 4: 25}
+        return custos.get(coluna)
+
+    def _configurar_slots_pos_batalha(self, estado_jogador):
+        for slot in estado_jogador["mapa"]:
+            slot_id = slot.get("slot_id", 0)
+            coluna = slot_id % 5
+            if coluna == 0:
+                slot["desbloqueado"] = True
+                slot["custo_desbloqueio"] = 0
+            else:
+                slot["desbloqueado"] = False
+                slot["custo_desbloqueio"] = self._custo_coluna_mapa(coluna)
 
     def _clonar_carta_catalogo(self, carta):
         clone = deepcopy(carta)
@@ -153,11 +170,17 @@ class Ativador:
 
     @classmethod
     def _sinergias_carta(cls, carta):
-        sinergias = [cls._obter_campo(carta, "sinergia", "-")]
-        sinergia_secundaria = cls._obter_campo(carta, "sinergia_secundaria")
-        if sinergia_secundaria:
-            sinergias.append(sinergia_secundaria)
-        return {sinergia for sinergia in sinergias if sinergia and sinergia != "-"}
+        sinergias = []
+        for campo in ("sinergia", "sinergia_secundaria", "sinergia_terciaria", "sinergia_quaternaria"):
+            valor = cls._obter_campo(carta, campo)
+            if valor and valor != "-":
+                sinergias.append(str(valor))
+        extras = cls._obter_campo(carta, "sinergias", [])
+        if isinstance(extras, (list, tuple)):
+            for item in extras:
+                if item and item != "-":
+                    sinergias.append(str(item))
+        return set(sinergias)
 
     @classmethod
     def _calcular_sinergias(cls, mapa):
@@ -272,12 +295,25 @@ class Ativador:
         slot = self._obter_slot_por_id(estado_jogador["mapa"], slot_id)
         if slot is None:
             return False, "slot_inexistente"
-        if not slot.get("desbloqueado"):
-            return False, "slot_bloqueado"
-        if slot.get("carta") is not None:
-            return False, "slot_ocupado"
 
-        slot["carta"] = estado_jogador["banco"].pop(indice_banco)
+        if not slot.get("desbloqueado"):
+            custo = slot.get("custo_desbloqueio")
+            if custo is None:
+                return False, "slot_bloqueado"
+            if estado_jogador["ouro"] < custo:
+                return False, "ouro_insuficiente"
+            estado_jogador["ouro"] -= custo
+            slot["desbloqueado"] = True
+
+        carta_banco = estado_jogador["banco"][indice_banco]
+        carta_slot = slot.get("carta")
+
+        if carta_slot is None:
+            slot["carta"] = estado_jogador["banco"].pop(indice_banco)
+        else:
+            slot["carta"] = carta_banco
+            estado_jogador["banco"][indice_banco] = carta_slot
+
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         return True, "ok"
 
@@ -301,5 +337,13 @@ class Ativador:
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         return True, "ok"
 
+
+    def registrar_fim_batalha(self, partida, player_id):
+        self._inicializar_partida(partida)
+        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        estado_jogador["batalhas_finalizadas"] = estado_jogador.get("batalhas_finalizadas", 0) + 1
+        if estado_jogador["batalhas_finalizadas"] == 1:
+            self._configurar_slots_pos_batalha(estado_jogador)
+        return True, "ok"
 
 ativador_global = Ativador()
