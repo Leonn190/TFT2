@@ -13,15 +13,81 @@ class GerenciadorPartidas:
         self.partidas_ativas = {}
 
     @staticmethod
-    def _sinergias_ativas(tabuleiro):
-        return Bot.sinergias_ativas(tabuleiro)
+    def _gerar_loja(catalogo, quantidade=5):
+        if not catalogo:
+            return []
+        return [deepcopy(random.choice(catalogo)) for _ in range(quantidade)]
 
     @staticmethod
-    def _forca_tabuleiro(tabuleiro):
-        return Bot.forca_tabuleiro(tabuleiro)
+    def _sinergias_ativas(tabuleiro):
+        contador = {}
+        for carta in tabuleiro:
+            for sinergia in carta.get("sinergias", []):
+                if sinergia and sinergia != "-":
+                    contador[sinergia] = contador.get(sinergia, 0) + 1
+        return {nome: qtd for nome, qtd in contador.items() if qtd >= 2}
+
+    @classmethod
+    def _forca_tabuleiro(cls, tabuleiro):
+        if not tabuleiro:
+            return 0
+
+        forca_base = sum(int(carta.get("custo", 1)) for carta in tabuleiro)
+        sinergias = cls._sinergias_ativas(tabuleiro)
+        bonus_sinergia = sum(qtd * 2 for qtd in sinergias.values())
+        bonus_diversidade = len(sinergias)
+        return forca_base + bonus_sinergia + bonus_diversidade
+
+    def _pontuar_compra(self, jogador, carta):
+        custo = int(carta.get("custo", 1))
+        sinergias_atuais = self._sinergias_ativas(jogador["tabuleiro"])
+        sinergias_carta = [s for s in carta.get("sinergias", []) if s and s != "-"]
+        pontos_sinergia = sum(2 for s in sinergias_carta if s in sinergias_atuais)
+        return pontos_sinergia + max(0, 4 - custo)
 
     def _executar_turno_bot(self, partida, jogador):
-        Bot.executar_turno(jogador, partida["catalogo"])
+        if jogador["vida"] <= 0:
+            return
+
+        jogador["ouro"] += 5
+        jogador["loja"] = self._gerar_loja(partida["catalogo"], quantidade=5)
+
+        compras = 0
+        while jogador["ouro"] > 0 and len(jogador["banco"]) < 9 and jogador["loja"] and compras < 5:
+            melhor_indice = max(
+                range(len(jogador["loja"])),
+                key=lambda i: self._pontuar_compra(jogador, jogador["loja"][i]),
+            )
+            carta = jogador["loja"][melhor_indice]
+            custo = int(carta.get("custo", 1))
+            if custo > jogador["ouro"]:
+                break
+            jogador["ouro"] -= custo
+            jogador["banco"].append(carta)
+            jogador["loja"].pop(melhor_indice)
+            compras += 1
+
+        precisa_roletar = self._forca_tabuleiro(jogador["tabuleiro"]) < 12 and jogador["ouro"] >= 2
+        if precisa_roletar:
+            jogador["ouro"] -= 2
+            jogador["loja"] = self._gerar_loja(partida["catalogo"], quantidade=5)
+
+        if jogador["ouro"] <= 1 and jogador["banco"]:
+            carta_vendida = jogador["banco"].pop(0)
+            jogador["ouro"] += max(1, int(carta_vendida.get("custo", 1)) - 1)
+
+        capacidade_tabuleiro = min(9, 1 + jogador["rodada"] // 2)
+        while len(jogador["tabuleiro"]) < capacidade_tabuleiro and jogador["banco"]:
+            melhor_indice = max(
+                range(len(jogador["banco"])),
+                key=lambda i: self._pontuar_compra(jogador, jogador["banco"][i]),
+            )
+            jogador["tabuleiro"].append(jogador["banco"].pop(melhor_indice))
+
+        jogador["sinergias"] = [
+            {"sinergia": nome, "quantidade": qtd}
+            for nome, qtd in sorted(self._sinergias_ativas(jogador["tabuleiro"]).items(), key=lambda item: (-item[1], item[0]))
+        ]
 
     @staticmethod
     def _aplicar_dano(vencedor, perdedor, diferenca_forca):
