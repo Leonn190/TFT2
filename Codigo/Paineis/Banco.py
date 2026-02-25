@@ -10,7 +10,7 @@ class Banco:
         self.fonte_titulo = obter_fonte(30)
         self.fonte_carta = obter_fonte(22)
         self.limite_cartas = 10
-        self.largura_carta = 194
+        self.largura_carta = 206
         self.altura_carta = self.rect.height - 46
         self.escala_hover = {}
 
@@ -98,7 +98,7 @@ class Banco:
         if cartas_drag:
             mouse = pygame.mouse.get_pos()
             largura = 180
-            altura = 108
+            altura = 116
             espacamento = 18
             for i, carta in enumerate(cartas_drag):
                 ghost = pygame.Rect(mouse[0] - largura // 2 + i * espacamento, mouse[1] - altura // 2 + i * 6, largura, altura)

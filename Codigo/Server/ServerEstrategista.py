@@ -23,6 +23,9 @@ class ServidorEstrategista:
     def alocar_cartas_sinergia(self, partida, player_id, card_uids, alvo_grupo_id=None):
         return ativador_global.alocar_cartas_sinergia(partida, player_id, card_uids, alvo_grupo_id=alvo_grupo_id)
 
+    def desbloquear_slot_mapa(self, partida, player_id, slot_id):
+        return ativador_global.desbloquear_slot_mapa(partida, player_id, slot_id)
+
     def mover_banco_para_mapa(self, partida, player_id, indice_banco, slot_id):
         return ativador_global.mover_banco_para_mapa(partida, player_id, indice_banco, slot_id)
 

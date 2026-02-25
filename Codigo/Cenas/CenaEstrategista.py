@@ -78,13 +78,13 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         jogador_ativo.mapa,
         slot_destacado=Parametros.get("SlotDestacado"),
     )
-    Parametros["Trilha"].desenhar_trilha(TELA, INFO.get("TrilhaBatalhas", []))
+    Parametros["Trilha"].desenhar_trilha(TELA, INFO.get("TrilhaBatalhas", []), indice_atual=INFO.get("IndiceBatalhaAtual", 0))
     Parametros["Trilha"].desenhar_temporizador(TELA, _tempo_restante_batalha(INFO), duracao_total_ms=INTERVALO_BATALHA_MS)
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
     Parametros["Banco"].desenhar(TELA, jogador_ativo.banco, ouro=jogador_ativo.ouro)
     arrastando_banco = Parametros["DragBanco"] is not None
-    Parametros["Loja"].desenhar(TELA, jogador_ativo.loja, modo_venda=arrastando_banco)
+    Parametros["Loja"].desenhar(TELA, jogador_ativo.loja, modo_venda=arrastando_banco, chances_loja=getattr(jogador_ativo, "chances_loja", None))
 
     carta_drag = None
     if Parametros["DragBanco"] is not None:
@@ -94,7 +94,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     if carta_drag is not None:
         mouse_x, mouse_y = pygame.mouse.get_pos()
-        card = pygame.Rect(mouse_x - 90, mouse_y - 54, 180, 108)
+        card = pygame.Rect(mouse_x - 90, mouse_y - 58, 180, 116)
         construtor_visual_cartucho.desenhar_cartucho(TELA, carta_drag, card, destacada=True, alpha=220)
 
     if jogador_ativo.player_id != "local-1":
@@ -193,6 +193,9 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 Parametros["DragBanco"] = carta_banco
                 Parametros["DragMapa"] = slot_mapa if slot_mapa and slot_mapa.get("carta") else None
                 Parametros["SlotDestacado"] = None
+
+                if carta_banco is None and slot_mapa is not None and not slot_mapa.get("desbloqueado"):
+                    servidor_estrategista.desbloquear_slot_mapa(partida, jogador_ativo.player_id, slot_mapa.get("slot_id", -1))
 
             if evento.type == pygame.MOUSEMOTION and Parametros["DragBanco"] is not None:
                 slot_mapa = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)

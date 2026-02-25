@@ -10,7 +10,7 @@ class Trilha:
         self.ordem_formato = ["circulo", "quadrado", "circulo", "circulo", "quadrado", "circulo", "circulo", "quadrado", "circulo"]
         self.fonte_tempo = obter_fonte(24, negrito=True)
 
-    def desenhar_trilha(self, tela, trilha_batalhas):
+    def desenhar_trilha(self, tela, trilha_batalhas, indice_atual=0):
         margem_x = 36
         y_formas = self.rect_trilha.y + 42
         espacamento = (self.rect_trilha.width - margem_x * 2) / (len(self.ordem_formato) - 1)
@@ -29,6 +29,8 @@ class Trilha:
                 cor = (72, 140, 246)
             elif resultado == "derrota":
                 cor = (216, 76, 76)
+            elif indice == indice_atual:
+                cor = (242, 214, 72)
             else:
                 cor = (164, 172, 184)
 

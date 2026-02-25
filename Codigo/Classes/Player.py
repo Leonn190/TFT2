@@ -17,6 +17,8 @@ class Player:
         self.selecao = []
         self.sinergias = []
         self.loja = []
+        self.slots_adquiridos = 1
+        self.chances_loja = {}
 
     @staticmethod
     def _serializar_lista_cartas(lista_cartas):
@@ -49,4 +51,6 @@ class Player:
             "selecao": self.selecao,
             "sinergias": self.sinergias,
             "loja": self._serializar_lista_cartas(self.loja),
+            "slots_adquiridos": self.slots_adquiridos,
+            "chances_loja": self.chances_loja,
         }
