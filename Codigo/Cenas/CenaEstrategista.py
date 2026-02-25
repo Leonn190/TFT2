@@ -31,6 +31,22 @@ def _obter_jogador_por_id(partida, player_id):
     return _obter_jogador_local(partida)
 
 
+def _sinergias_carta(carta):
+    sinergias = {carta.get("sinergia", "-")}
+    secundaria = carta.get("sinergia_secundaria")
+    if secundaria:
+        sinergias.add(secundaria)
+    return sinergias
+
+
+def _selecionaveis_compativeis(cartas):
+    if not cartas:
+        return True
+    comum = set.intersection(*(_sinergias_carta(carta) for carta in cartas))
+    comum.discard("-")
+    return bool(comum)
+
+
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill((44, 46, 50))
 
@@ -50,11 +66,22 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         fonte_ping = obter_fonte(24)
         TELA.blit(fonte_ping.render(f"Ping: {partida.ping_ms}ms", True, (196, 204, 216)), (10, 36))
 
-    Parametros["Mapa"].desenhar(TELA, jogador_ativo.mapa, mostrar_grade=Parametros["Banco"].drag is not None, carta_drag=Parametros["Banco"].drag["carta"] if Parametros["Banco"].drag else None)
+    cartas_sel = set(Parametros["CartasSelecionadasUids"])
+    cartas_drag = Parametros["CartasArrastadas"] if Parametros["ModoArrasto"] else None
+    grupo_destacado = Parametros.get("GrupoDestacado")
+
+    Parametros["Mapa"].desenhar(
+        TELA,
+        jogador_ativo.mapa,
+        cartas_selecionadas=cartas_sel,
+        cartas_drag=cartas_drag,
+        grupo_destacado=grupo_destacado,
+        tick_ms=pygame.time.get_ticks(),
+    )
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
     Parametros["Selecao"].desenhar(TELA, jogador_ativo.selecao, carta_drag=Parametros["DragMapa"]["carta"] if Parametros["DragMapa"] else None)
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
-    Parametros["Banco"].desenhar(TELA, jogador_ativo.banco)
+    Parametros["Banco"].desenhar(TELA, jogador_ativo.banco, cartas_selecionadas=cartas_sel, cartas_drag=cartas_drag)
     Parametros["Loja"].desenhar(TELA, jogador_ativo.loja)
 
     if jogador_ativo.player_id != "local-1":
@@ -82,7 +109,37 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
         "Visualizador": Visualizador(),
         "JogadorVisualizadoId": "local-1",
         "DragMapa": None,
+        "CartasSelecionadasUids": [],
+        "ModoArrasto": False,
+        "CartasArrastadas": [],
+        "GrupoDestacado": None,
     }
+
+
+def _alternar_selecao_carta(carta, parametros, jogador_ativo):
+    uid = carta.get("uid")
+    selecionadas = parametros["CartasSelecionadasUids"]
+    if uid in selecionadas:
+        selecionadas.remove(uid)
+        return
+
+    candidatas = [c for c in jogador_ativo.banco if c.get("uid") in selecionadas]
+    for grupo in jogador_ativo.mapa:
+        candidatas.extend([c for c in grupo.get("cartas", []) if c.get("uid") in selecionadas])
+    candidatas.append(carta)
+    if _selecionaveis_compativeis(candidatas):
+        selecionadas.append(uid)
+
+
+def _atualizar_cartas_arrastadas(parametros, jogador_ativo):
+    selecionadas = set(parametros["CartasSelecionadasUids"])
+    cartas = [carta for carta in jogador_ativo.banco if carta.get("uid") in selecionadas]
+    cartas_mapa = []
+    for grupo in jogador_ativo.mapa:
+        for carta in grupo.get("cartas", []):
+            if carta.get("uid") in selecionadas:
+                cartas_mapa.append(carta)
+    parametros["CartasArrastadas"] = cartas + cartas_mapa
 
 
 def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
@@ -140,23 +197,63 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     Parametros["JogadorVisualizadoId"] = player_id
                     continue
 
-                entry = Parametros["Mapa"].tropa_por_posicao(evento.pos, jogador_ativo.mapa)
-                if entry is not None:
-                    Parametros["DragMapa"] = entry
+                carta_banco = Parametros["Banco"].carta_por_posicao(evento.pos, jogador_ativo.banco)
+                carta_mapa = Parametros["Mapa"].carta_por_posicao(evento.pos, jogador_ativo.mapa)
+
+                if carta_banco is not None:
+                    _alternar_selecao_carta(carta_banco["carta"], Parametros, jogador_ativo)
+                    _atualizar_cartas_arrastadas(Parametros, jogador_ativo)
+                    if carta_banco["carta"].get("uid") in Parametros["CartasSelecionadasUids"]:
+                        Parametros["ModoArrasto"] = True
                     continue
 
-            if evento.type == pygame.MOUSEBUTTONUP and evento.button == 1 and Parametros["DragMapa"] is not None:
-                indice_selecao = Parametros["Selecao"].slot_por_posicao(evento.pos)
-                if indice_selecao is not None:
-                    servidor_estrategista.mover_mapa_para_selecao(
+                if carta_mapa is not None:
+                    _alternar_selecao_carta(carta_mapa["carta"], Parametros, jogador_ativo)
+                    _atualizar_cartas_arrastadas(Parametros, jogador_ativo)
+                    if carta_mapa["carta"].get("uid") in Parametros["CartasSelecionadasUids"]:
+                        Parametros["ModoArrasto"] = True
+                    Parametros["DragMapa"] = carta_mapa
+                    continue
+
+            if evento.type == pygame.MOUSEMOTION and Parametros["ModoArrasto"]:
+                _atualizar_cartas_arrastadas(Parametros, jogador_ativo)
+                Parametros["GrupoDestacado"] = Parametros["Mapa"].grupo_compativel_para_arraste(evento.pos, jogador_ativo.mapa, Parametros["CartasArrastadas"])
+
+            if evento.type == pygame.MOUSEBUTTONUP and evento.button == 1:
+                if Parametros["DragMapa"] is not None:
+                    indice_selecao = Parametros["Selecao"].slot_por_posicao(evento.pos)
+                    if indice_selecao is not None:
+                        servidor_estrategista.mover_mapa_para_selecao(
+                            partida,
+                            jogador_ativo.player_id,
+                            Parametros["DragMapa"]["carta"].get("uid"),
+                            indice_selecao,
+                        )
+
+                if Parametros["ModoArrasto"] and Parametros["CartasSelecionadasUids"]:
+                    _atualizar_cartas_arrastadas(Parametros, jogador_ativo)
+                    grupo_id = Parametros["Mapa"].grupo_compativel_para_arraste(evento.pos, jogador_ativo.mapa, Parametros["CartasArrastadas"])
+                    alvo_grupo_id = grupo_id
+                    if alvo_grupo_id is None:
+                        if len(Parametros["CartasArrastadas"]) < 3:
+                            Parametros["CartasSelecionadasUids"] = []
+                            Parametros["CartasArrastadas"] = []
+                            Parametros["ModoArrasto"] = False
+                            Parametros["DragMapa"] = None
+                            Parametros["GrupoDestacado"] = None
+                            continue
+                    servidor_estrategista.alocar_cartas_sinergia(
                         partida,
                         jogador_ativo.player_id,
-                        Parametros["DragMapa"]["q"],
-                        Parametros["DragMapa"]["r"],
-                        indice_selecao,
+                        list(Parametros["CartasSelecionadasUids"]),
+                        alvo_grupo_id=alvo_grupo_id,
                     )
+                    Parametros["CartasSelecionadasUids"] = []
+                    Parametros["CartasArrastadas"] = []
+                    Parametros["ModoArrasto"] = False
+                    Parametros["GrupoDestacado"] = None
+
                 Parametros["DragMapa"] = None
-                continue
 
             acao_loja = Parametros["Loja"].processar_evento(evento, jogador_ativo.loja)
             if acao_loja:
@@ -165,14 +262,9 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 elif acao_loja["acao"] == "comprar":
                     servidor_estrategista.comprar_carta_loja(partida, jogador_ativo.player_id, acao_loja["indice"])
 
-            acao_banco = Parametros["Banco"].processar_evento(evento, jogador_ativo.banco, Parametros["Loja"].rect)
-            if acao_banco:
-                if acao_banco["acao"] == "vender":
-                    servidor_estrategista.vender_do_banco(partida, jogador_ativo.player_id, acao_banco["indice"])
-                elif acao_banco["acao"] == "soltar":
-                    pos_hex = Parametros["Mapa"].slot_para_posicao(acao_banco["pos"])
-                    if pos_hex is not None:
-                        servidor_estrategista.posicionar_do_banco(partida, jogador_ativo.player_id, acao_banco["indice"], pos_hex[0], pos_hex[1])
+            acao_banco = Parametros["Banco"].carta_por_posicao(evento.pos, jogador_ativo.banco) if evento.type == pygame.MOUSEBUTTONUP else None
+            if acao_banco and Parametros["Loja"].rect.collidepoint(evento.pos):
+                servidor_estrategista.vender_do_banco(partida, jogador_ativo.player_id, acao_banco["indice"])
 
         partida = Parametros.get("PartidaAtual")
         if partida is not None and acumulador_sync_ms >= partida.ping_ms:
