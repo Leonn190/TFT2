@@ -5,7 +5,7 @@ from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 class Banco:
     def __init__(self, largura_tela=1920, altura_tela=1080):
-        self.rect = pygame.Rect(30, int(altura_tela * 0.81), int(largura_tela * 0.67), int(altura_tela * 0.18))
+        self.rect = pygame.Rect(30, int(altura_tela * 0.79), int(largura_tela * 0.67), int(altura_tela * 0.20))
         self.fonte_titulo = obter_fonte(30)
         self.fonte_carta = obter_fonte(22)
 
@@ -26,22 +26,26 @@ class Banco:
                 return {"indice": indice, "carta": cartas_banco[indice], "rect": slot}
         return None
 
-    def desenhar(self, tela, cartas_banco, cartas_selecionadas=None, cartas_drag=None):
+    def desenhar(self, tela, cartas_banco, cartas_selecionadas=None, cartas_drag=None, ouro=None):
         cartas_selecionadas = cartas_selecionadas or set()
-        pygame.draw.rect(tela, (46, 50, 56), self.rect, border_radius=14)
-        pygame.draw.rect(tela, (122, 130, 142), self.rect, width=2, border_radius=14)
+        pygame.draw.rect(tela, (68, 52, 38), self.rect, border_radius=14)
+        pygame.draw.rect(tela, (158, 132, 102), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Banco", True, (236, 236, 236)), (self.rect.x + 12, self.rect.y + 8))
+
+        if ouro is not None:
+            txt_ouro = self.fonte_titulo.render(f"Ouro: {ouro}", True, (236, 218, 126))
+            tela.blit(txt_ouro, (self.rect.right - txt_ouro.get_width() - 12, self.rect.y + 8))
 
         slots = self._rects_slots(max(6, len(cartas_banco)))
         for indice, slot in enumerate(slots):
-            pygame.draw.rect(tela, (64, 70, 78), slot, border_radius=10)
-            pygame.draw.rect(tela, (132, 140, 152), slot, width=2, border_radius=10)
+            pygame.draw.rect(tela, (88, 70, 54), slot, border_radius=10)
+            pygame.draw.rect(tela, (170, 146, 118), slot, width=2, border_radius=10)
             if indice < len(cartas_banco):
                 carta = cartas_banco[indice]
                 selecionada = carta.get("uid") in cartas_selecionadas
                 card_rect = slot.move(0, -8) if selecionada else slot
-                borda = (240, 214, 76) if selecionada else (132, 140, 152)
-                pygame.draw.rect(tela, (72, 78, 86), card_rect, border_radius=10)
+                borda = (240, 214, 76) if selecionada else (176, 150, 122)
+                pygame.draw.rect(tela, (100, 78, 60), card_rect, border_radius=10)
                 pygame.draw.rect(tela, borda, card_rect, width=2, border_radius=10)
                 nome = carta.get("nome", "Carta")
                 sinergia = carta.get("sinergia", "-")

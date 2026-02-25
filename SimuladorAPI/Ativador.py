@@ -143,20 +143,51 @@ class Ativador:
         return True, "ok"
 
     @staticmethod
-    def _calcular_sinergias(mapa):
+    def _sinergias_carta(carta):
+        sinergias = [carta.get("sinergia", "-")]
+        sinergia_secundaria = carta.get("sinergia_secundaria")
+        if sinergia_secundaria:
+            sinergias.append(sinergia_secundaria)
+        return {sinergia for sinergia in sinergias if sinergia and sinergia != "-"}
+
+    @classmethod
+    def _calcular_sinergias(cls, mapa):
         contador = {}
+        slot_por_id = {slot.get("slot_id"): slot for slot in mapa}
+
+        for slot in mapa:
+            carta = slot.get("carta")
+            if carta is None:
+                continue
+            for sinergia in cls._sinergias_carta(carta):
+                contador[sinergia] = contador.get(sinergia, 0) + 1
+
         for slot in mapa:
             carta = slot.get("carta")
             if carta is None:
                 continue
 
-            sinergias = [carta.get("sinergia", "-")]
-            sinergia_secundaria = carta.get("sinergia_secundaria")
-            if sinergia_secundaria:
-                sinergias.append(sinergia_secundaria)
+            slot_id = slot.get("slot_id", -1)
+            linha = slot_id // 5
+            coluna = slot_id % 5
+            sinergias_carta = cls._sinergias_carta(carta)
+            if not sinergias_carta:
+                continue
 
-            for sinergia in sinergias:
-                contador[sinergia] = contador.get(sinergia, 0) + 1
+            for dl, dc in ((0, 1), (1, 0)):
+                vizinho_linha = linha + dl
+                vizinho_coluna = coluna + dc
+                if vizinho_linha > 2 or vizinho_coluna > 4:
+                    continue
+                vizinho_id = vizinho_linha * 5 + vizinho_coluna
+                slot_vizinho = slot_por_id.get(vizinho_id)
+                if slot_vizinho is None or slot_vizinho.get("carta") is None:
+                    continue
+
+                compartilhadas = sinergias_carta.intersection(cls._sinergias_carta(slot_vizinho["carta"]))
+                for sinergia in compartilhadas:
+                    contador[sinergia] = contador.get(sinergia, 0) + 1
+
         return [{"sinergia": nome, "quantidade": qtd} for nome, qtd in sorted(contador.items(), key=lambda item: (-item[1], item[0]))]
 
     @staticmethod
