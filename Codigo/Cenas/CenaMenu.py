@@ -164,6 +164,19 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
 
             if melhor_retorno and melhor_retorno["api"]["status"] == "partida_encontrada":
                 INFO["PartidaAtual"] = melhor_retorno["api"].get("partida_objeto")
+                INFO["TrilhaBatalhas"] = [
+                    {"tipo": "normal", "resultado": None},
+                    {"tipo": "augment", "resultado": None},
+                    {"tipo": "normal", "resultado": None},
+                    {"tipo": "normal", "resultado": None},
+                    {"tipo": "augment", "resultado": None},
+                    {"tipo": "normal", "resultado": None},
+                    {"tipo": "normal", "resultado": None},
+                    {"tipo": "augment", "resultado": None},
+                    {"tipo": "normal", "resultado": None},
+                ]
+                INFO["IndiceBatalhaAtual"] = 0
+                INFO["TempoRestanteBatalhaMs"] = 40000
                 Escurecer(TELA, INFO, fps=CONFIG["FPS"])
                 ESTADOS["Menu"] = False
                 ESTADOS["Estrategista"] = True

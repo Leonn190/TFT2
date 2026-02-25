@@ -6,6 +6,7 @@ from Codigo.Paineis.Banco import Banco
 from Codigo.Paineis.Loja import Loja
 from Codigo.Paineis.Mapa import Mapa
 from Codigo.Paineis.Sinergias import Sinergias
+from Codigo.Paineis.Trilha import Trilha
 from Codigo.Paineis.Visualizador import Visualizador
 from Codigo.Server.Pareamento import ServidorPareamento
 from Codigo.Server.ServerEstrategista import ServidorEstrategista
@@ -14,6 +15,8 @@ from Codigo.Telas.Opcoes import InicializaTelaOpcoes, ProcessarEventosTelaOpcoes
 
 servico_pareamento = ServidorPareamento()
 servidor_estrategista = ServidorEstrategista()
+
+INTERVALO_BATALHA_MS = 40000
 
 
 def _obter_jogador_local(partida):
@@ -28,6 +31,27 @@ def _obter_jogador_por_id(partida, player_id):
         if jogador.player_id == player_id:
             return jogador
     return _obter_jogador_local(partida)
+
+
+def _inicializar_progresso_trilha(INFO):
+    if "TrilhaBatalhas" not in INFO:
+        INFO["TrilhaBatalhas"] = [
+            {"tipo": "normal", "resultado": None},
+            {"tipo": "augment", "resultado": None},
+            {"tipo": "normal", "resultado": None},
+            {"tipo": "normal", "resultado": None},
+            {"tipo": "augment", "resultado": None},
+            {"tipo": "normal", "resultado": None},
+            {"tipo": "normal", "resultado": None},
+            {"tipo": "augment", "resultado": None},
+            {"tipo": "normal", "resultado": None},
+        ]
+    if "IndiceBatalhaAtual" not in INFO:
+        INFO["IndiceBatalhaAtual"] = 0
+
+
+def _tempo_restante_batalha(INFO):
+    return max(0, INFO.get("TempoRestanteBatalhaMs", INTERVALO_BATALHA_MS))
 
 
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
@@ -53,6 +77,8 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         jogador_ativo.mapa,
         slot_destacado=Parametros.get("SlotDestacado"),
     )
+    Parametros["Trilha"].desenhar_trilha(TELA, INFO.get("TrilhaBatalhas", []))
+    Parametros["Trilha"].desenhar_temporizador(TELA, _tempo_restante_batalha(INFO), duracao_total_ms=INTERVALO_BATALHA_MS)
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
     Parametros["Banco"].desenhar(TELA, jogador_ativo.banco, ouro=jogador_ativo.ouro)
@@ -88,6 +114,10 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
     if partida is not None:
         servidor_estrategista.sincronizar_partida(partida)
 
+    _inicializar_progresso_trilha(INFO)
+    if INFO.get("TempoRestanteBatalhaMs") is None:
+        INFO["TempoRestanteBatalhaMs"] = INTERVALO_BATALHA_MS
+
     return {
         "TelaAtiva": TelaEstrategista,
         "TelaBase": TelaEstrategista,
@@ -99,6 +129,7 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
         "Mapa": Mapa(),
         "Sinergias": Sinergias(),
         "Visualizador": Visualizador(),
+        "Trilha": Trilha(),
         "JogadorVisualizadoId": "local-1",
         "DragBanco": None,
         "DragMapa": None,
@@ -121,6 +152,7 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
     while ESTADOS["Estrategista"] and ESTADOS["Rodando"]:
         dt_ms = RELOGIO.get_time()
         acumulador_sync_ms += dt_ms
+        INFO["TempoRestanteBatalhaMs"] = max(0, INFO.get("TempoRestanteBatalhaMs", INTERVALO_BATALHA_MS) - dt_ms)
 
         eventos = pygame.event.get()
         for evento in eventos:
@@ -212,6 +244,13 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
         if partida is not None and acumulador_sync_ms >= partida.ping_ms:
             servidor_estrategista.sincronizar_partida(partida)
             acumulador_sync_ms = 0
+
+        if INFO.get("TempoRestanteBatalhaMs", INTERVALO_BATALHA_MS) <= 0:
+            INFO["TempoRestanteBatalhaMs"] = INTERVALO_BATALHA_MS
+            FecharIris(TELA, INFO, fps=CONFIG["FPS"])
+            ESTADOS["Estrategista"] = False
+            ESTADOS["Batalha"] = True
+            return
 
         Parametros["TelaBase"](TELA, ESTADOS, CONFIG, INFO, Parametros)
         Parametros["TelaAtiva"](TELA, ESTADOS, CONFIG, INFO, Parametros)
