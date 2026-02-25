@@ -430,6 +430,31 @@ class Ativador:
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         return True, "ok"
 
+    def mover_mapa_para_mapa(self, partida, player_id, slot_origem_id, slot_destino_id):
+        self._inicializar_partida(partida)
+        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+
+        slot_origem = self._obter_slot_por_id(estado_jogador["mapa"], slot_origem_id)
+        slot_destino = self._obter_slot_por_id(estado_jogador["mapa"], slot_destino_id)
+        if slot_origem is None or slot_destino is None:
+            return False, "slot_inexistente"
+
+        if not slot_destino.get("desbloqueado"):
+            ok, motivo = self._desbloquear_slot(estado_jogador, slot_destino)
+            if not ok:
+                return False, motivo
+
+        carta_origem = slot_origem.get("carta")
+        if carta_origem is None:
+            return False, "slot_origem_vazio"
+
+        carta_destino = slot_destino.get("carta")
+        slot_origem["carta"] = carta_destino
+        slot_destino["carta"] = carta_origem
+
+        estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
+        return True, "ok"
+
     def mover_mapa_para_banco(self, partida, player_id, slot_id):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]

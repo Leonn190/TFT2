@@ -161,8 +161,9 @@ class Sinergias:
             return self._cache_imagens[chave]
 
         superficie = pygame.Surface(tamanho, pygame.SRCALPHA)
-        borda = CORES_RARIDADE.get(str(carta.get("raridade", "comum")).lower(), CORES_RARIDADE["comum"])
-        pygame.draw.rect(superficie, (0, 0, 0), superficie.get_rect(), width=1)
+        cor_raridade = CORES_RARIDADE.get(str(carta.get("raridade", "comum")).lower(), CORES_RARIDADE["comum"])
+        pygame.draw.rect(superficie, cor_raridade, superficie.get_rect(), border_radius=4)
+        pygame.draw.rect(superficie, (0, 0, 0), superficie.get_rect(), width=1, border_radius=4)
 
         imagem_path = Path(str(carta.get("imagem") or ""))
         if imagem_path.exists():

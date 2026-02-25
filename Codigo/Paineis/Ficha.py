@@ -46,8 +46,9 @@ class Ficha:
             "nome": str(self._obter(carta, "nome", "Brawler")),
             "imagem": str(self._obter(carta, "imagem", "")),
             "stats": [
+                ("Vida", self._obter(carta, "vida", self._obter(carta, "Vida", "-"))),
                 ("Atk", self._obter(carta, "atk", self._obter(carta, "Atk", "-"))),
-                ("Spd", self._obter(carta, "spd", self._obter(carta, "Spd", "-"))),
+                ("SpD", self._obter(carta, "spd", self._obter(carta, "SpD", "-"))),
                 ("SpA", self._obter(carta, "spa", self._obter(carta, "SpA", "-"))),
                 ("Vel", self._obter(carta, "vel", self._obter(carta, "Vel", "-"))),
                 ("Def", self._obter(carta, "def", self._obter(carta, "Def", "-"))),
@@ -71,7 +72,9 @@ class Ficha:
             return
 
         y = self.rect.y + 50
-        img_rect = pygame.Rect(self.rect.x + 12, y, self.rect.width - 24, 160)
+        largura_imagem = min(self.rect.width - 24, 190)
+        x_imagem = self.rect.centerx - largura_imagem // 2
+        img_rect = pygame.Rect(x_imagem, y, largura_imagem, 140)
         pygame.draw.rect(tela, (24, 28, 34), img_rect, border_radius=8)
         pygame.draw.rect(tela, (0, 0, 0), img_rect, width=1, border_radius=8)
 
