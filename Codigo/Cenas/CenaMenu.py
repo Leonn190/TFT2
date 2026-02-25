@@ -3,6 +3,7 @@ import pygame
 from Codigo.Classes.Player import Player
 from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, Escurecer
 from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
+from Codigo.Modulos.Sonoridades import atualizar_musica, parar_musica, tocar_musica
 from Codigo.Prefabs.Botao import Botao
 from Codigo.Server.Pareamento import ServidorPareamento
 from Codigo.Telas.Config import (
@@ -54,6 +55,7 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
 
 def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
     Parametros = InicializaMenu(TELA, ESTADOS, CONFIG, INFO)
+    tocar_musica("Menu1")
 
     while ESTADOS["Menu"] and ESTADOS["Rodando"]:
         eventos = pygame.event.get()
@@ -81,6 +83,7 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     }
 
                 elif Parametros["BotoesBase"]["Sair"].atualizar_evento(evento):
+                    parar_musica()
                     ESTADOS["Menu"] = False
                     ESTADOS["Rodando"] = False
                     return
@@ -178,6 +181,7 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 INFO["IndiceBatalhaAtual"] = 0
                 INFO["TempoRestanteBatalhaMs"] = 40000
                 Escurecer(TELA, INFO, fps=CONFIG["FPS"])
+                parar_musica()
                 ESTADOS["Menu"] = False
                 ESTADOS["Estrategista"] = True
                 return
@@ -188,6 +192,7 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
         Clarear(TELA, INFO, velocidade=4)
         AplicarClaridade(TELA, CONFIG["Claridade"])
         DesenharFPS(TELA, RELOGIO, CONFIG)
+        atualizar_musica()
 
         pygame.display.update()
         RELOGIO.tick(CONFIG["FPS"])

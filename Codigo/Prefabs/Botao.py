@@ -3,6 +3,7 @@ from pathlib import Path
 import pygame
 
 from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
+from Codigo.Modulos.Sonoridades import tocar
 
 
 class Botao:
@@ -100,6 +101,9 @@ class Botao:
 
         if clicou and self.estilo in {"alavanca", "selecao"}:
             self.ativo = not self.ativo
+
+        if clicou:
+            tocar("Clique")
         return clicou
 
     def definir_valor(self, valor):
