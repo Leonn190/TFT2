@@ -6,7 +6,7 @@ from Codigo.Prefabs.Botao import Botao
 
 class Loja:
     def __init__(self, largura_tela=1920, altura_tela=1080):
-        self.rect = pygame.Rect(int(largura_tela * 0.71), int(altura_tela * 0.81), int(largura_tela * 0.27), int(altura_tela * 0.18))
+        self.rect = pygame.Rect(int(largura_tela * 0.71), int(altura_tela * 0.79), int(largura_tela * 0.27), int(altura_tela * 0.20))
         self.fonte_titulo = obter_fonte(30)
         self.fonte_carta = obter_fonte(21)
         self.botao_roletar = Botao(self.rect.x + 16, self.rect.y + self.rect.height - 44, self.rect.width - 32, 34, "Roletar (2)")
@@ -30,13 +30,13 @@ class Loja:
         return None
 
     def desenhar(self, tela, cartas_loja):
-        pygame.draw.rect(tela, (48, 52, 58), self.rect, border_radius=14)
-        pygame.draw.rect(tela, (126, 134, 146), self.rect, width=2, border_radius=14)
+        pygame.draw.rect(tela, (40, 54, 78), self.rect, border_radius=14)
+        pygame.draw.rect(tela, (122, 146, 186), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Loja", True, (236, 236, 236)), (self.rect.x + 12, self.rect.y + 8))
 
         for indice, rect in enumerate(self._rects_cartas()):
-            pygame.draw.rect(tela, (66, 72, 80), rect, border_radius=10)
-            pygame.draw.rect(tela, (150, 158, 170), rect, width=2, border_radius=10)
+            pygame.draw.rect(tela, (54, 72, 102), rect, border_radius=10)
+            pygame.draw.rect(tela, (150, 176, 214), rect, width=2, border_radius=10)
             if indice < len(cartas_loja):
                 carta = cartas_loja[indice]
                 tela.blit(self.fonte_carta.render(carta.get("nome", "Carta"), True, (240, 240, 240)), (rect.x + 8, rect.y + 6))

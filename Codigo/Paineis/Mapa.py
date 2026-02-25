@@ -38,9 +38,9 @@ class Mapa:
                 return item["slot"]
         return None
 
-    def desenhar(self, tela, mapa_slots, carta_drag=None, slot_destacado=None):
-        pygame.draw.rect(tela, (52, 56, 62), self.rect, border_radius=14)
-        pygame.draw.rect(tela, (124, 132, 143), self.rect, width=2, border_radius=14)
+    def desenhar(self, tela, mapa_slots, slot_destacado=None):
+        pygame.draw.rect(tela, (36, 62, 44), self.rect, border_radius=14)
+        pygame.draw.rect(tela, (118, 146, 124), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Mapa", True, (236, 236, 236)), (self.rect.x + 14, self.rect.y + 8))
 
         slots = self._slots(mapa_slots)
@@ -59,11 +59,11 @@ class Mapa:
             destacado = slot_destacado is not None and slot.get("slot_id") == slot_destacado
 
             if not slot.get("desbloqueado"):
-                cor_slot = (40, 42, 47)
-                cor_borda = (80, 86, 96)
+                cor_slot = (30, 44, 35)
+                cor_borda = (68, 98, 78)
             else:
-                cor_slot = (70, 76, 84) if carta is None else (86, 94, 104)
-                cor_borda = (246, 216, 84) if destacado else (164, 172, 184)
+                cor_slot = (52, 84, 62) if carta is None else (64, 98, 74)
+                cor_borda = (246, 216, 84) if destacado else (150, 180, 160)
 
             pygame.draw.rect(tela, cor_slot, rect, border_radius=10)
             pygame.draw.rect(tela, cor_borda, rect, width=2, border_radius=10)
@@ -86,12 +86,3 @@ class Mapa:
             tela.blit(nome, (rect.x + 8, rect.y + 6))
             tela.blit(sin, (rect.x + 8, rect.y + 30))
 
-        if carta_drag is not None:
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            card = pygame.Rect(mouse_x - 82, mouse_y - 34, 164, 68)
-            pygame.draw.rect(tela, (76, 84, 94), card, border_radius=9)
-            pygame.draw.rect(tela, (186, 196, 208), card, width=2, border_radius=9)
-            nome = self.fonte_carta.render(carta_drag.get("nome", "Carta"), True, (244, 244, 244))
-            sinergia = self.fonte_carta.render(carta_drag.get("sinergia", "-"), True, (220, 226, 234))
-            tela.blit(nome, (card.x + 8, card.y + 6))
-            tela.blit(sinergia, (card.x + 8, card.y + 30))

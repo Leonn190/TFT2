@@ -31,7 +31,7 @@ def _obter_jogador_por_id(partida, player_id):
 
 
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
-    TELA.fill((44, 46, 50))
+    TELA.fill((24, 26, 30))
 
     partida = Parametros.get("PartidaAtual")
     if partida is None:
@@ -43,7 +43,6 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     fonte = obter_fonte(30)
     TELA.blit(fonte.render(f"Vida: {jogador_ativo.vida}", True, (236, 236, 236)), (40, 62))
-    TELA.blit(fonte.render(f"Ouro: {jogador_ativo.ouro}", True, (236, 218, 126)), (230, 62))
 
     if CONFIG.get("MostrarPing", False):
         fonte_ping = obter_fonte(24)
@@ -52,13 +51,31 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
     Parametros["Mapa"].desenhar(
         TELA,
         jogador_ativo.mapa,
-        carta_drag=Parametros["DragBanco"]["carta"] if Parametros["DragBanco"] else None,
         slot_destacado=Parametros.get("SlotDestacado"),
     )
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
-    Parametros["Banco"].desenhar(TELA, jogador_ativo.banco)
+    Parametros["Banco"].desenhar(TELA, jogador_ativo.banco, ouro=jogador_ativo.ouro)
     Parametros["Loja"].desenhar(TELA, jogador_ativo.loja)
+
+    carta_drag = None
+    if Parametros["DragBanco"] is not None:
+        carta_drag = Parametros["DragBanco"]["carta"]
+    elif Parametros["DragMapa"] is not None:
+        carta_drag = Parametros["DragMapa"]["carta"]
+
+    if carta_drag is not None:
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        card = pygame.Rect(mouse_x - 82, mouse_y - 34, 164, 68)
+        pygame.draw.rect(TELA, (76, 84, 94), card, border_radius=9)
+        pygame.draw.rect(TELA, (186, 196, 208), card, width=2, border_radius=9)
+        nome = Parametros["Mapa"].fonte_carta.render(carta_drag.get("nome", "Carta"), True, (244, 244, 244))
+        sinergia = carta_drag.get("sinergia", "-")
+        if carta_drag.get("sinergia_secundaria"):
+            sinergia = f"{sinergia}/{carta_drag.get('sinergia_secundaria')}"
+        txt_sinergia = Parametros["Mapa"].fonte_carta.render(sinergia, True, (220, 226, 234))
+        TELA.blit(nome, (card.x + 8, card.y + 6))
+        TELA.blit(txt_sinergia, (card.x + 8, card.y + 30))
 
     if jogador_ativo.player_id != "local-1":
         aviso = obter_fonte(22, negrito=True).render(f"Visualizando: {jogador_ativo.nome}", True, (204, 210, 220))
