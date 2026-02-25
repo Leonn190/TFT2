@@ -8,6 +8,8 @@ class Ativador:
     def __init__(self):
         self._partidas = {}
         self.ping_ms = 35
+        self._proximo_uid_carta = 1
+        self._proximo_uid_grupo = 1
 
     def definir_ping(self, ping_ms):
         self.ping_ms = max(0, int(ping_ms))
@@ -49,6 +51,12 @@ class Ativador:
             "sinergias": [],
         }
 
+    def _clonar_carta_catalogo(self, carta):
+        clone = deepcopy(carta)
+        clone["uid"] = self._proximo_uid_carta
+        self._proximo_uid_carta += 1
+        return clone
+
     def _comprar_cartas_estoque(self, partida_id, quantidade):
         partida_estado = self._partidas[partida_id]
         cartas = []
@@ -58,7 +66,7 @@ class Ativador:
                 break
             carta_id = random.choice(disponiveis)
             partida_estado["estoque"][carta_id] -= 1
-            cartas.append(deepcopy(partida_estado["catalogo"][carta_id]))
+            cartas.append(self._clonar_carta_catalogo(partida_estado["catalogo"][carta_id]))
         return cartas
 
     def _devolver_ao_estoque(self, partida_id, carta):
@@ -92,8 +100,6 @@ class Ativador:
                 continue
             dados = estado["jogadores"][jogador.player_id]
             dados["ouro"] = max(0, min(50, dados["ouro"] + random.randint(-1, 2)))
-            if random.random() < 0.05:
-                dados["vida"] = max(1, dados["vida"] - 1)
 
     def comprar_carta_loja(self, partida, player_id, indice_loja):
         self._inicializar_partida(partida)
@@ -153,57 +159,126 @@ class Ativador:
     @staticmethod
     def _calcular_sinergias(mapa):
         contador = {}
-        for entry in mapa:
-            carta = entry["carta"]
-            sinergias = [carta.get("sinergia", "-")]
-            sinergia_secundaria = carta.get("sinergia_secundaria")
-            if sinergia_secundaria:
-                sinergias.append(sinergia_secundaria)
+        for grupo in mapa:
+            for carta in grupo.get("cartas", []):
+                sinergias = [carta.get("sinergia", "-")]
+                sinergia_secundaria = carta.get("sinergia_secundaria")
+                if sinergia_secundaria:
+                    sinergias.append(sinergia_secundaria)
 
-            for sinergia in sinergias:
-                contador[sinergia] = contador.get(sinergia, 0) + 1
+                for sinergia in sinergias:
+                    contador[sinergia] = contador.get(sinergia, 0) + 1
         return [{"sinergia": nome, "quantidade": qtd} for nome, qtd in sorted(contador.items(), key=lambda item: (-item[1], item[0]))]
 
-    def posicionar_do_banco(self, partida, player_id, indice_banco, q, r):
+    @staticmethod
+    def _sinergias_da_carta(carta):
+        sinergias = {carta.get("sinergia", "-")}
+        secundaria = carta.get("sinergia_secundaria")
+        if secundaria:
+            sinergias.add(secundaria)
+        return sinergias
+
+    def _remover_carta_mapa_por_uid(self, estado_jogador, carta_uid):
+        for grupo in list(estado_jogador["mapa"]):
+            for indice, carta in enumerate(grupo.get("cartas", [])):
+                if carta.get("uid") == carta_uid:
+                    grupo["cartas"].pop(indice)
+                    if not grupo["cartas"]:
+                        estado_jogador["mapa"].remove(grupo)
+                    return carta
+        return None
+
+    def _retirar_cartas_por_uid(self, estado_jogador, card_uids):
+        retiradas = []
+        restantes = list(card_uids)
+
+        for uid in list(restantes):
+            indice_banco = next((i for i, carta in enumerate(estado_jogador["banco"]) if carta.get("uid") == uid), -1)
+            if indice_banco >= 0:
+                retiradas.append(estado_jogador["banco"].pop(indice_banco))
+                restantes.remove(uid)
+
+        for uid in list(restantes):
+            carta = self._remover_carta_mapa_por_uid(estado_jogador, uid)
+            if carta is not None:
+                retiradas.append(carta)
+                restantes.remove(uid)
+
+        if restantes:
+            return None
+        return retiradas
+
+    def alocar_cartas_sinergia(self, partida, player_id, card_uids, alvo_grupo_id=None):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        if not card_uids:
+            return False, "sem_cartas"
 
-        if indice_banco < 0 or indice_banco >= len(estado_jogador["banco"]):
-            return False, "indice_invalido"
+        cartas = self._retirar_cartas_por_uid(estado_jogador, card_uids)
+        if cartas is None:
+            return False, "carta_inexistente"
 
-        if any(entry["q"] == q and entry["r"] == r for entry in estado_jogador["mapa"]):
-            return False, "slot_ocupado"
+        if alvo_grupo_id is not None:
+            grupo = next((item for item in estado_jogador["mapa"] if item.get("grupo_id") == alvo_grupo_id), None)
+            if grupo is None:
+                estado_jogador["banco"].extend(cartas)
+                return False, "grupo_inexistente"
+            sinergia_alvo = grupo.get("sinergia", "-")
+            if not all(sinergia_alvo in self._sinergias_da_carta(carta) for carta in cartas):
+                estado_jogador["banco"].extend(cartas)
+                return False, "sinergia_invalida"
+            grupo["cartas"].extend(cartas)
+        else:
+            if len(cartas) < 3:
+                estado_jogador["banco"].extend(cartas)
+                return False, "minimo_tres_cartas"
 
-        carta = estado_jogador["banco"][indice_banco]
-        sinergia = carta.get("sinergia", "-")
-        entradas_mesma_sinergia = [entry for entry in estado_jogador["mapa"] if entry["carta"].get("sinergia", "-") == sinergia]
+            sinergia_comum = set.intersection(*(self._sinergias_da_carta(carta) for carta in cartas))
+            sinergia_comum.discard("-")
+            if not sinergia_comum:
+                estado_jogador["banco"].extend(cartas)
+                return False, "sem_sinergia_comum"
 
-        if estado_jogador["mapa"]:
-            if not any(self._eh_adjacente((entry["q"], entry["r"]), (q, r)) and entry["carta"].get("sinergia", "-") == sinergia for entry in estado_jogador["mapa"]):
-                return False, "sinergia_desconectada"
+            grupo = {
+                "grupo_id": self._proximo_uid_grupo,
+                "sinergia": sorted(sinergia_comum)[0],
+                "cartas": cartas,
+            }
+            self._proximo_uid_grupo += 1
+            estado_jogador["mapa"].append(grupo)
 
-        if entradas_mesma_sinergia:
-            if not any(self._eh_adjacente((entry["q"], entry["r"]), (q, r)) for entry in entradas_mesma_sinergia):
-                return False, "nao_adj_mesma_sinergia"
-
-            posicoes = [(entry["q"], entry["r"]) for entry in entradas_mesma_sinergia] + [(q, r)]
-            if not self._em_reta_hex(posicoes):
-                return False, "fora_da_reta"
-
-        estado_jogador["banco"].pop(indice_banco)
-        estado_jogador["mapa"].append({"carta": carta, "q": q, "r": r})
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         return True, "ok"
 
-    def mover_mapa_para_selecao(self, partida, player_id, q, r, indice_selecao):
+    def posicionar_do_banco(self, partida, player_id, indice_banco, q, r):
+        del q, r
+        self._inicializar_partida(partida)
+        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        if indice_banco < 0 or indice_banco >= len(estado_jogador["banco"]):
+            return False, "indice_invalido"
+
+        carta = estado_jogador["banco"][indice_banco]
+        carta_uid = carta.get("uid")
+        grupos_compativeis = [
+            grupo for grupo in estado_jogador["mapa"] if grupo.get("sinergia", "-") in self._sinergias_da_carta(carta)
+        ]
+        if not grupos_compativeis:
+            return False, "minimo_tres_cartas"
+        return self.alocar_cartas_sinergia(partida, player_id, [carta_uid], alvo_grupo_id=grupos_compativeis[0].get("grupo_id"))
+
+    def mover_mapa_para_selecao(self, partida, player_id, carta_uid, indice_selecao):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
 
         if indice_selecao < 0 or indice_selecao >= 1:
             return False, "slot_bloqueado"
 
-        indice_mapa = next((i for i, entry in enumerate(estado_jogador["mapa"]) if entry["q"] == q and entry["r"] == r), -1)
-        if indice_mapa < 0:
+        carta = None
+        for grupo in estado_jogador["mapa"]:
+            carta = next((item for item in grupo.get("cartas", []) if item.get("uid") == carta_uid), None)
+            if carta is not None:
+                break
+        if carta is None:
             return False, "tropa_inexistente"
 
         while len(estado_jogador["selecao"]) < 5:
@@ -212,8 +287,7 @@ class Ativador:
         if estado_jogador["selecao"][indice_selecao] is not None:
             return False, "slot_ocupado"
 
-        entry = estado_jogador["mapa"][indice_mapa]
-        estado_jogador["selecao"][indice_selecao] = entry["carta"]
+        estado_jogador["selecao"][indice_selecao] = deepcopy(carta)
         # A seleção apenas referencia a tropa escolhida; ela continua no mapa e nas sinergias.
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         return True, "ok"

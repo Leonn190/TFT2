@@ -8,7 +8,6 @@ class Banco:
         self.rect = pygame.Rect(30, int(altura_tela * 0.81), int(largura_tela * 0.67), int(altura_tela * 0.18))
         self.fonte_titulo = obter_fonte(30)
         self.fonte_carta = obter_fonte(22)
-        self.drag = None
 
     def _rects_slots(self, quantidade):
         quantidade = max(1, quantidade)
@@ -21,24 +20,14 @@ class Banco:
             for i in range(quantidade)
         ]
 
-    def processar_evento(self, evento, cartas_banco, area_loja_rect):
-        if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-            for indice, slot in enumerate(self._rects_slots(max(6, len(cartas_banco)))):
-                if indice < len(cartas_banco) and slot.collidepoint(evento.pos):
-                    self.drag = {"indice": indice, "carta": cartas_banco[indice], "offset": (evento.pos[0] - slot.x, evento.pos[1] - slot.y)}
-                    return {"acao": "drag_inicio", "indice": indice}
-
-        if evento.type == pygame.MOUSEBUTTONUP and evento.button == 1 and self.drag is not None:
-            indice = self.drag["indice"]
-            drop_pos = evento.pos
-            self.drag = None
-            if area_loja_rect.collidepoint(drop_pos):
-                return {"acao": "vender", "indice": indice}
-            return {"acao": "soltar", "indice": indice, "pos": drop_pos}
-
+    def carta_por_posicao(self, pos, cartas_banco):
+        for indice, slot in enumerate(self._rects_slots(max(6, len(cartas_banco)))):
+            if indice < len(cartas_banco) and slot.collidepoint(pos):
+                return {"indice": indice, "carta": cartas_banco[indice], "rect": slot}
         return None
 
-    def desenhar(self, tela, cartas_banco):
+    def desenhar(self, tela, cartas_banco, cartas_selecionadas=None, cartas_drag=None):
+        cartas_selecionadas = cartas_selecionadas or set()
         pygame.draw.rect(tela, (46, 50, 56), self.rect, border_radius=14)
         pygame.draw.rect(tela, (122, 130, 142), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Banco", True, (236, 236, 236)), (self.rect.x + 12, self.rect.y + 8))
@@ -49,18 +38,25 @@ class Banco:
             pygame.draw.rect(tela, (132, 140, 152), slot, width=2, border_radius=10)
             if indice < len(cartas_banco):
                 carta = cartas_banco[indice]
+                selecionada = carta.get("uid") in cartas_selecionadas
+                card_rect = slot.move(0, -8) if selecionada else slot
+                borda = (240, 214, 76) if selecionada else (132, 140, 152)
+                pygame.draw.rect(tela, (72, 78, 86), card_rect, border_radius=10)
+                pygame.draw.rect(tela, borda, card_rect, width=2, border_radius=10)
                 nome = carta.get("nome", "Carta")
                 sinergia = carta.get("sinergia", "-")
                 if carta.get("sinergia_secundaria"):
                     sinergia = f"{sinergia}/{carta.get('sinergia_secundaria')}"
-                tela.blit(self.fonte_carta.render(nome, True, (240, 240, 240)), (slot.x + 8, slot.y + 8))
-                tela.blit(self.fonte_carta.render(sinergia, True, (206, 212, 220)), (slot.x + 8, slot.y + 34))
+                tela.blit(self.fonte_carta.render(nome, True, (240, 240, 240)), (card_rect.x + 8, card_rect.y + 8))
+                tela.blit(self.fonte_carta.render(sinergia, True, (206, 212, 220)), (card_rect.x + 8, card_rect.y + 34))
 
-        if self.drag is not None:
+        if cartas_drag:
             mouse = pygame.mouse.get_pos()
-            carta = self.drag["carta"]
-            w, h = 170, 78
-            ghost = pygame.Rect(mouse[0] - self.drag["offset"][0], mouse[1] - self.drag["offset"][1], w, h)
-            pygame.draw.rect(tela, (74, 80, 88), ghost, border_radius=10)
-            pygame.draw.rect(tela, (152, 160, 172), ghost, width=2, border_radius=10)
-            tela.blit(self.fonte_carta.render(carta.get("nome", "Carta"), True, (242, 242, 242)), (ghost.x + 8, ghost.y + 8))
+            largura = 170
+            altura = 78
+            espacamento = 18
+            for i, carta in enumerate(cartas_drag):
+                ghost = pygame.Rect(mouse[0] - largura // 2 + i * espacamento, mouse[1] - altura // 2 + i * 6, largura, altura)
+                pygame.draw.rect(tela, (74, 80, 88), ghost, border_radius=10)
+                pygame.draw.rect(tela, (250, 216, 90), ghost, width=2, border_radius=10)
+                tela.blit(self.fonte_carta.render(carta.get("nome", "Carta"), True, (242, 242, 242)), (ghost.x + 8, ghost.y + 8))
