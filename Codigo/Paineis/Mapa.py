@@ -39,7 +39,7 @@ class Mapa:
                 return item["slot"]
         return None
 
-    def desenhar(self, tela, mapa_slots, slot_destacado=None):
+    def desenhar(self, tela, mapa_slots, slot_destacado=None, cartas_piscando_ids=None):
         pygame.draw.rect(tela, (36, 62, 44), self.rect, border_radius=14)
         pygame.draw.rect(tela, (118, 146, 124), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Mapa", True, (236, 236, 236)), (self.rect.x + 14, self.rect.y + 8))
@@ -52,6 +52,10 @@ class Mapa:
                 destino = (item["linha"] + dl, item["coluna"] + dc)
                 if destino in centros:
                     pygame.draw.line(tela, (112, 120, 132), item["rect"].center, centros[destino], 3)
+
+        cartas_piscando_ids = cartas_piscando_ids or set()
+        pulso = (pygame.time.get_ticks() // 80) % 8
+        alpha_pulso = 185 + abs(4 - pulso) * 16
 
         for item in slots:
             slot = item["slot"]
@@ -79,4 +83,12 @@ class Mapa:
                 tela.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
                 continue
 
-            construtor_visual_cartucho.desenhar_cartucho(tela, carta, rect, destacada=destacado)
+            carta_id = str(carta.get("id") or "")
+            piscar = carta_id in cartas_piscando_ids
+            construtor_visual_cartucho.desenhar_cartucho(
+                tela,
+                carta,
+                rect,
+                destacada=destacado or piscar,
+                alpha=alpha_pulso if piscar else 255,
+            )

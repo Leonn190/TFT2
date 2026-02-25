@@ -73,14 +73,28 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         fonte_ping = obter_fonte(24)
         TELA.blit(fonte_ping.render(f"Ping: {partida.ping_ms}ms", True, (196, 204, 216)), (10, 36))
 
+    hover_sinergia = Parametros["Sinergias"].obter_hover_info(
+        pygame.mouse.get_pos(),
+        jogador_ativo.sinergias,
+        jogador_ativo.mapa,
+        set_nome=getattr(jogador_ativo, "set_escolhido", "BrawlStars") or "BrawlStars",
+    )
+
     Parametros["Mapa"].desenhar(
         TELA,
         jogador_ativo.mapa,
         slot_destacado=Parametros.get("SlotDestacado"),
+        cartas_piscando_ids=hover_sinergia.get("ids_em_campo", set()) if hover_sinergia else set(),
     )
     Parametros["Trilha"].desenhar_trilha(TELA, INFO.get("TrilhaBatalhas", []), indice_atual=INFO.get("IndiceBatalhaAtual", 0))
     Parametros["Trilha"].desenhar_temporizador(TELA, _tempo_restante_batalha(INFO), duracao_total_ms=INTERVALO_BATALHA_MS)
-    Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
+    Parametros["Sinergias"].desenhar(
+        TELA,
+        jogador_ativo.sinergias,
+        mapa_slots=jogador_ativo.mapa,
+        set_nome=getattr(jogador_ativo, "set_escolhido", "BrawlStars") or "BrawlStars",
+        hover_info=hover_sinergia,
+    )
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
     Parametros["Banco"].desenhar(TELA, jogador_ativo.banco, ouro=jogador_ativo.ouro)
     arrastando_banco = Parametros["DragBanco"] is not None
