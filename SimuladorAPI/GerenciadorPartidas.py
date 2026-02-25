@@ -1,8 +1,7 @@
+import random
 import time
 import uuid
-import random
 from copy import deepcopy
-
 from SimuladorAPI.Bot import Bot
 from SimuladorAPI.teste import criar_cartas_teste
 
@@ -11,6 +10,39 @@ class GerenciadorPartidas:
     def __init__(self):
         self.filas = {}
         self.partidas_ativas = {}
+
+    @staticmethod
+    def _normalizar_jogador(jogador, set_escolhido):
+        if isinstance(jogador, dict):
+            return {
+                "player_id": jogador.get("player_id") or f"sim-{uuid.uuid4().hex[:8]}",
+                "nome": jogador.get("nome") or "Jogador",
+                "set_escolhido": jogador.get("set_escolhido") or set_escolhido,
+                "is_bot": bool(jogador.get("is_bot", False)),
+                "categoria": jogador.get("categoria") or ("bot" if jogador.get("is_bot", False) else "simulado"),
+            }
+
+        return {
+            "player_id": getattr(jogador, "player_id", f"sim-{uuid.uuid4().hex[:8]}"),
+            "nome": getattr(jogador, "nome", "Jogador"),
+            "set_escolhido": getattr(jogador, "set_escolhido", set_escolhido),
+            "is_bot": bool(getattr(jogador, "is_bot", False)),
+            "categoria": getattr(jogador, "categoria", "simulado"),
+        }
+
+    @staticmethod
+    def _serializar_jogador(jogador):
+        if isinstance(jogador, dict):
+            return deepcopy(jogador)
+        if hasattr(jogador, "para_json"):
+            return jogador.para_json()
+        return {
+            "player_id": getattr(jogador, "player_id", f"sim-{uuid.uuid4().hex[:8]}"),
+            "nome": getattr(jogador, "nome", "Jogador"),
+            "set_escolhido": getattr(jogador, "set_escolhido", None),
+            "is_bot": bool(getattr(jogador, "is_bot", False)),
+            "categoria": getattr(jogador, "categoria", "simulado"),
+        }
 
     @staticmethod
     def _gerar_loja(catalogo, quantidade=5):
@@ -255,7 +287,7 @@ class GerenciadorPartidas:
             fila = self._criar_fila()
             self.filas[set_escolhido] = fila
 
-        fila["jogadores"].append(jogador)
+        fila["jogadores"].append(self._normalizar_jogador(jogador, set_escolhido))
         return {
             "status": "na_fila",
             "set_escolhido": set_escolhido,
@@ -285,7 +317,7 @@ class GerenciadorPartidas:
         if fila["pareada"]:
             self.partidas_ativas[fila["partida_id"]] = {
                 "set_escolhido": set_escolhido,
-                "jogadores": [jogador.para_json() for jogador in fila["jogadores"]],
+                "jogadores": [self._serializar_jogador(jogador) for jogador in fila["jogadores"]],
             }
 
         return {
@@ -294,7 +326,7 @@ class GerenciadorPartidas:
             "partida_id": fila["partida_id"],
             "tempo_espera": round(tempo_em_fila, 1),
             "jogadores_na_fila": len(fila["jogadores"]),
-            "jogadores": [jogador.para_json() for jogador in fila["jogadores"]],
+            "jogadores": [self._serializar_jogador(jogador) for jogador in fila["jogadores"]],
             "tamanho_partida": tamanho_partida,
         }
 
@@ -307,7 +339,7 @@ class GerenciadorPartidas:
                 "set_escolhido": set_escolhido,
             }
 
-        fila["jogadores"] = [j for j in fila["jogadores"] if j.player_id != player_id]
+        fila["jogadores"] = [j for j in fila["jogadores"] if self._serializar_jogador(j).get("player_id") != player_id]
         if not fila["jogadores"]:
             del self.filas[set_escolhido]
             return {

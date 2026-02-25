@@ -11,6 +11,8 @@ class Partida:
         self.ping_ms = 0
         self.estoque_compartilhado = {}
         self.regras = carregar_regras_partida(set_escolhido)
+        self.seed_combate = int(self.regras.get("seed_combate", 1337))
+        self.log_eventos = []
 
     def adicionar_jogador(self, jogador):
         if jogador.player_id not in [existente.player_id for existente in self.jogadores]:
@@ -30,4 +32,6 @@ class Partida:
             "ping_ms": self.ping_ms,
             "estoque_compartilhado": self.estoque_compartilhado,
             "regras": self.regras,
+            "seed_combate": self.seed_combate,
+            "log_eventos": self.log_eventos,
         }

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+
 import pygame
 
 from Codigo.Classes.PlayerCombate import PlayerCombate
@@ -9,9 +11,11 @@ from Codigo.Paineis.FichaCombate import FichaCombate
 
 
 class SimuladorBatalha:
-    def __init__(self, aliado, inimigo):
-        self.aliado_base = PlayerCombate(aliado)
-        self.inimigo_base = PlayerCombate(inimigo)
+    def __init__(self, aliado, inimigo, seed=1337):
+        self.seed = int(seed)
+        self.rng = random.Random(self.seed)
+        self.aliado_base = PlayerCombate(aliado, rng=self.rng)
+        self.inimigo_base = PlayerCombate(inimigo, rng=self.rng)
 
         self.arena = pygame.Rect(430, 160, 1060, 700)
         self.ficha_esquerda = pygame.Rect(20, 160, 380, 700)

@@ -9,6 +9,7 @@ class Ativador:
         self._partidas = {}
         self.ping_ms = 35
         self._proximo_uid_carta = 1
+        self._seed_padrao = 1337
 
     def definir_ping(self, ping_ms):
         self.ping_ms = max(0, int(ping_ms))
@@ -33,6 +34,9 @@ class Ativador:
             "estoque": estoque,
             "jogadores": {},
             "regras": regras_partida,
+            "seed_combate": int(regras_partida.get("seed_combate", self._seed_padrao)),
+            "log_eventos": [],
+            "tick_evento": 0,
         }
 
         for jogador in partida.jogadores:
@@ -169,6 +173,30 @@ class Ativador:
         if carta_id in self._partidas[partida_id]["estoque"]:
             self._partidas[partida_id]["estoque"][carta_id] += 1
 
+    def _registrar_evento(self, partida_id, player_id, acao, detalhes):
+        estado = self._partidas[partida_id]
+        estado["tick_evento"] = estado.get("tick_evento", 0) + 1
+        estado.setdefault("log_eventos", []).append(
+            {
+                "tick": estado["tick_evento"],
+                "player_id": player_id,
+                "acao": acao,
+                "detalhes": deepcopy(detalhes or {}),
+            }
+        )
+
+    def snapshot_partida(self, partida):
+        self._inicializar_partida(partida)
+        partida_id = self._chave(partida)
+        estado = self._partidas[partida_id]
+        return {
+            "partida_id": partida_id,
+            "seed_combate": estado.get("seed_combate", self._seed_padrao),
+            "estoque_compartilhado": deepcopy(estado.get("estoque", {})),
+            "jogadores": deepcopy(estado.get("jogadores", {})),
+            "log_eventos": deepcopy(estado.get("log_eventos", [])),
+        }
+
     def sincronizar_partida(self, partida, player_local_id="local-1"):
         self._inicializar_partida(partida)
         partida_id = self._chave(partida)
@@ -190,6 +218,8 @@ class Ativador:
         self.atualizar_outros_players(partida, player_local_id)
         partida.ping_ms = self.ping_ms
         partida.estoque_compartilhado = deepcopy(estado["estoque"])
+        partida.seed_combate = estado.get("seed_combate", self._seed_padrao)
+        partida.log_eventos = deepcopy(estado.get("log_eventos", []))
         return partida
 
     def atualizar_outros_players(self, partida, player_local_id="local-1"):
@@ -210,6 +240,7 @@ class Ativador:
         estado_jogador["ouro"] -= custo
         estado_jogador["banco"].append(deepcopy(carta))
         del estado_jogador["loja"][indice_loja]
+        self._registrar_evento(self._chave(partida), player_id, "comprar_loja", {"indice_loja": indice_loja, "uid": self._obter_campo(carta, "uid")})
         return True, "ok"
 
     def roletar_loja(self, partida, player_id, custo=2):
@@ -222,8 +253,9 @@ class Ativador:
         estado_jogador["ouro"] -= custo
         for carta in estado_jogador["loja"]:
             self._devolver_ao_estoque(partida_id, carta)
-        self._atualizar_progresso_jogador(estado_jogador)
+        self._atualizar_progresso_jogador(partida_id, estado_jogador)
         estado_jogador["loja"] = self._comprar_cartas_estoque(partida_id, quantidade=3, chances_loja=estado_jogador.get("chances_loja"))
+        self._registrar_evento(partida_id, player_id, "roletar_loja", {"custo": custo})
         return True, "ok"
 
     def _slot_pode_desbloquear(self, mapa, slot):
@@ -253,7 +285,6 @@ class Ativador:
         if proximo_slot is not None and not proximo_slot.get("desbloqueado") and proximo_slot.get("custo_desbloqueio") is None:
             proximo_slot["custo_desbloqueio"] = self._custo_coluna_mapa(proximo_slot.get("slot_id", 0) % 5)
 
-        self._atualizar_progresso_jogador(estado_jogador)
         return True, "ok"
 
     def desbloquear_slot_mapa(self, partida, player_id, slot_id):
@@ -262,7 +293,10 @@ class Ativador:
         slot = self._obter_slot_por_id(estado_jogador["mapa"], slot_id)
         if slot is None:
             return False, "slot_inexistente"
-        return self._desbloquear_slot(estado_jogador, slot)
+        ok, motivo = self._desbloquear_slot(estado_jogador, slot)
+        if ok:
+            self._registrar_evento(self._chave(partida), player_id, "desbloquear_slot", {"slot_id": slot_id})
+        return ok, motivo
 
     def vender_do_banco(self, partida, player_id, indice_banco):
         self._inicializar_partida(partida)
@@ -275,6 +309,7 @@ class Ativador:
         carta_dict = carta.para_dict() if hasattr(carta, "para_dict") else carta
         estado_jogador["ouro"] += self._obter_campo(carta_dict, "custo", 1)
         self._devolver_ao_estoque(partida_id, carta_dict)
+        self._registrar_evento(partida_id, player_id, "vender_banco", {"indice_banco": indice_banco, "uid": self._obter_campo(carta_dict, "uid")})
         return True, "ok"
 
     @classmethod
@@ -391,6 +426,7 @@ class Ativador:
         slot_livre["carta"] = cartas[0]
 
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
+        self._registrar_evento(self._chave(partida), player_id, "alocar_sinergia", {"card_uids": list(card_uids)})
         return True, "ok"
 
     def posicionar_do_banco(self, partida, player_id, indice_banco, q, r):
@@ -428,6 +464,7 @@ class Ativador:
             estado_jogador["banco"][indice_banco] = carta_slot
 
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
+        self._registrar_evento(self._chave(partida), player_id, "mover_banco_para_mapa", {"indice_banco": indice_banco, "slot_id": slot_id})
         return True, "ok"
 
     def mover_mapa_para_mapa(self, partida, player_id, slot_origem_id, slot_destino_id):
@@ -453,6 +490,7 @@ class Ativador:
         slot_destino["carta"] = carta_origem
 
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
+        self._registrar_evento(self._chave(partida), player_id, "mover_mapa_para_mapa", {"slot_origem_id": slot_origem_id, "slot_destino_id": slot_destino_id})
         return True, "ok"
 
     def mover_mapa_para_banco(self, partida, player_id, slot_id):
@@ -473,16 +511,19 @@ class Ativador:
         slot["carta"] = None
         estado_jogador["banco"].append(carta)
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
+        self._registrar_evento(self._chave(partida), player_id, "mover_mapa_para_banco", {"slot_id": slot_id})
         return True, "ok"
 
 
     def registrar_fim_batalha(self, partida, player_id):
         self._inicializar_partida(partida)
-        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        partida_id = self._chave(partida)
+        estado_jogador = self._partidas[partida_id]["jogadores"][player_id]
         estado_jogador["batalhas_finalizadas"] = estado_jogador.get("batalhas_finalizadas", 0) + 1
         if estado_jogador["batalhas_finalizadas"] == 1:
             self._configurar_slots_pos_batalha(estado_jogador)
-        self._atualizar_progresso_jogador(estado_jogador)
+        self._atualizar_progresso_jogador(partida_id, estado_jogador)
+        self._registrar_evento(partida_id, player_id, "fim_batalha", {"total": estado_jogador["batalhas_finalizadas"]})
         return True, "ok"
 
 ativador_global = Ativador()

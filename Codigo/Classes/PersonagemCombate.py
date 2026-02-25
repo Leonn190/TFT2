@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import math
-import random
 import pygame
 
 from Codigo.Modulos.ConstrutorVisual import construir_avatar_circular
 
 
 class PersonagemCombate:
-    def __init__(self, carta, equipe, arena_rect, indice=0):
+    def __init__(self, carta, equipe, arena_rect, indice=0, rng=None):
         self.carta = carta or {}
+        self.rng = rng
         self.equipe = equipe
         self.nome = str(self.carta.get("nome") or "Brawler")
 
@@ -45,18 +45,18 @@ class PersonagemCombate:
         faixa_direita = (arena_rect.right - margem_x, arena_rect.right - 24)
 
         if self.equipe == "aliado":
-            x = random.uniform(*faixa_esquerda)
+            x = self.rng.uniform(*faixa_esquerda) if self.rng else (faixa_esquerda[0] + faixa_esquerda[1]) / 2
         else:
-            x = random.uniform(*faixa_direita)
+            x = self.rng.uniform(*faixa_direita) if self.rng else (faixa_direita[0] + faixa_direita[1]) / 2
 
         altura_util = arena_rect.height - 2 * (self.raio + 8)
         y_base = arena_rect.top + self.raio + 8
         y = y_base + ((indice + 1) / 6.0) * max(40, altura_util)
-        y += random.uniform(-20, 20)
+        y += self.rng.uniform(-20, 20) if self.rng else 0
         return x, y
 
     def _velocidade_inicial(self):
-        angulo = random.uniform(0, math.tau)
+        angulo = self.rng.uniform(0, math.tau) if self.rng else 0
         modulo = self.velocidade_base
         return math.cos(angulo) * modulo, math.sin(angulo) * modulo
 
