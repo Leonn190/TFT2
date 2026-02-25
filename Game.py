@@ -7,6 +7,7 @@ from Codigo.Cenas.CenaEstrategista import EstrategistaLoop
 from Codigo.Cenas.CenaMenu import MenuLoop
 from Codigo.Telas.TelaEscolhaSet import listar_sets_existentes
 from ConfigFixa import carregar_configuracoes_fixas
+from Codigo.Modulos.Sonoridades import VerificaSonoridade
 
 pygame.init()
 
@@ -21,6 +22,7 @@ RELOGIO = pygame.time.Clock()
 sets_encontrados = listar_sets_existentes()
 
 CONFIG = carregar_configuracoes_fixas()
+VerificaSonoridade(CONFIG)
 CONFIG["SetsDisponiveis"] = sets_encontrados or ["BrawlStars"]
 
 INFO = {"Escuro": 100}

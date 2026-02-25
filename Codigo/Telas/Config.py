@@ -3,6 +3,7 @@ from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 from Codigo.Prefabs.Barra import BarraArrastavel
 from Codigo.Prefabs.Botao import Botao
 from ConfigFixa import salvar_configuracoes_fixas
+from Codigo.Modulos.Sonoridades import VerificaSonoridade
 
 
 def InicializaTelaConfig(CONFIG):
@@ -55,9 +56,11 @@ def obter_configuracoes_da_tela(parametros_config):
 
 def aplicar_configuracoes_em_tempo_real(CONFIG, parametros_config):
     CONFIG.update(obter_configuracoes_da_tela(parametros_config))
+    VerificaSonoridade(CONFIG)
 
 
 def aplicar_configuracoes(CONFIG, parametros_config):
     novas_configs = obter_configuracoes_da_tela(parametros_config)
     CONFIG.update(novas_configs)
+    VerificaSonoridade(CONFIG)
     salvar_configuracoes_fixas(novas_configs)
