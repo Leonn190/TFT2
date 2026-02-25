@@ -83,3 +83,24 @@ class ServidorPareamento:
             "ok": retorno.get("ok", False),
             "api": retorno,
         }
+
+    def simular_rodada(self, partida_id):
+        retorno = gerenciador_partidas.simular_rodada(partida_id)
+        return {
+            "ok": retorno.get("ok", False),
+            "api": retorno,
+        }
+
+    def simular_partida_completa(self, partida_id, max_rodadas=100):
+        retorno = gerenciador_partidas.simular_partida_completa(partida_id, max_rodadas=max_rodadas)
+        return {
+            "ok": retorno.get("ok", False),
+            "api": retorno,
+        }
+
+    def estado_partida(self, partida_id):
+        retorno = gerenciador_partidas.obter_estado_partida(partida_id)
+        return {
+            "ok": retorno.get("ok", False),
+            "api": retorno,
+        }

@@ -1,13 +1,240 @@
 import time
 import uuid
+import random
+from copy import deepcopy
 
 from SimuladorAPI.Bot import Bot
+from SimuladorAPI.teste import criar_cartas_teste
 
 
 class GerenciadorPartidas:
     def __init__(self):
         self.filas = {}
         self.partidas_ativas = {}
+
+    @staticmethod
+    def _gerar_loja(catalogo, quantidade=5):
+        if not catalogo:
+            return []
+        return [deepcopy(random.choice(catalogo)) for _ in range(quantidade)]
+
+    @staticmethod
+    def _sinergias_ativas(tabuleiro):
+        contador = {}
+        for carta in tabuleiro:
+            for sinergia in carta.get("sinergias", []):
+                if sinergia and sinergia != "-":
+                    contador[sinergia] = contador.get(sinergia, 0) + 1
+        return {nome: qtd for nome, qtd in contador.items() if qtd >= 2}
+
+    @classmethod
+    def _forca_tabuleiro(cls, tabuleiro):
+        if not tabuleiro:
+            return 0
+
+        forca_base = sum(int(carta.get("custo", 1)) for carta in tabuleiro)
+        sinergias = cls._sinergias_ativas(tabuleiro)
+        bonus_sinergia = sum(qtd * 2 for qtd in sinergias.values())
+        bonus_diversidade = len(sinergias)
+        return forca_base + bonus_sinergia + bonus_diversidade
+
+    def _pontuar_compra(self, jogador, carta):
+        custo = int(carta.get("custo", 1))
+        sinergias_atuais = self._sinergias_ativas(jogador["tabuleiro"])
+        sinergias_carta = [s for s in carta.get("sinergias", []) if s and s != "-"]
+        pontos_sinergia = sum(2 for s in sinergias_carta if s in sinergias_atuais)
+        return pontos_sinergia + max(0, 4 - custo)
+
+    def _executar_turno_bot(self, partida, jogador):
+        if jogador["vida"] <= 0:
+            return
+
+        jogador["ouro"] += 5
+        jogador["loja"] = self._gerar_loja(partida["catalogo"], quantidade=5)
+
+        compras = 0
+        while jogador["ouro"] > 0 and len(jogador["banco"]) < 9 and jogador["loja"] and compras < 5:
+            melhor_indice = max(
+                range(len(jogador["loja"])),
+                key=lambda i: self._pontuar_compra(jogador, jogador["loja"][i]),
+            )
+            carta = jogador["loja"][melhor_indice]
+            custo = int(carta.get("custo", 1))
+            if custo > jogador["ouro"]:
+                break
+            jogador["ouro"] -= custo
+            jogador["banco"].append(carta)
+            jogador["loja"].pop(melhor_indice)
+            compras += 1
+
+        precisa_roletar = self._forca_tabuleiro(jogador["tabuleiro"]) < 12 and jogador["ouro"] >= 2
+        if precisa_roletar:
+            jogador["ouro"] -= 2
+            jogador["loja"] = self._gerar_loja(partida["catalogo"], quantidade=5)
+
+        if jogador["ouro"] <= 1 and jogador["banco"]:
+            carta_vendida = jogador["banco"].pop(0)
+            jogador["ouro"] += max(1, int(carta_vendida.get("custo", 1)) - 1)
+
+        capacidade_tabuleiro = min(9, 1 + jogador["rodada"] // 2)
+        while len(jogador["tabuleiro"]) < capacidade_tabuleiro and jogador["banco"]:
+            melhor_indice = max(
+                range(len(jogador["banco"])),
+                key=lambda i: self._pontuar_compra(jogador, jogador["banco"][i]),
+            )
+            jogador["tabuleiro"].append(jogador["banco"].pop(melhor_indice))
+
+        jogador["sinergias"] = [
+            {"sinergia": nome, "quantidade": qtd}
+            for nome, qtd in sorted(self._sinergias_ativas(jogador["tabuleiro"]).items(), key=lambda item: (-item[1], item[0]))
+        ]
+
+    @staticmethod
+    def _aplicar_dano(vencedor, perdedor, diferenca_forca):
+        dano = 5 + max(0, diferenca_forca // 3)
+        perdedor["vida"] = max(0, perdedor["vida"] - dano)
+        vencedor["vitorias"] += 1
+        perdedor["derrotas"] += 1
+
+    def _simular_batalhas(self, partida):
+        vivos = [j for j in partida["jogadores"] if j["vida"] > 0]
+        random.shuffle(vivos)
+
+        historico = []
+        for indice in range(0, len(vivos) - 1, 2):
+            jogador_a = vivos[indice]
+            jogador_b = vivos[indice + 1]
+            forca_a = self._forca_tabuleiro(jogador_a["tabuleiro"])
+            forca_b = self._forca_tabuleiro(jogador_b["tabuleiro"])
+
+            if forca_a > forca_b:
+                self._aplicar_dano(jogador_a, jogador_b, forca_a - forca_b)
+                vencedor_id = jogador_a["player_id"]
+            elif forca_b > forca_a:
+                self._aplicar_dano(jogador_b, jogador_a, forca_b - forca_a)
+                vencedor_id = jogador_b["player_id"]
+            else:
+                jogador_a["vida"] = max(0, jogador_a["vida"] - 2)
+                jogador_b["vida"] = max(0, jogador_b["vida"] - 2)
+                jogador_a["empates"] += 1
+                jogador_b["empates"] += 1
+                vencedor_id = None
+
+            historico.append(
+                {
+                    "dupla": [jogador_a["player_id"], jogador_b["player_id"]],
+                    "forcas": [forca_a, forca_b],
+                    "vencedor_id": vencedor_id,
+                }
+            )
+
+        if len(vivos) % 2 == 1:
+            bye = vivos[-1]
+            bye["ouro"] += 1
+            historico.append({"dupla": [bye["player_id"]], "bye": True})
+
+        return historico
+
+    def _inicializar_estado_partida(self, partida_id):
+        partida = self.partidas_ativas.get(partida_id)
+        if not partida or "catalogo" in partida:
+            return
+
+        catalogo = criar_cartas_teste(partida.get("set_escolhido") or "BrawlStars")
+        partida["catalogo"] = catalogo
+        partida["rodada"] = 0
+        partida["status_simulacao"] = "em_andamento"
+        partida["historico_rodadas"] = []
+
+        jogadores_estado = []
+        for jogador in partida.get("jogadores", []):
+            jogadores_estado.append(
+                {
+                    "player_id": jogador["player_id"],
+                    "nome": jogador["nome"],
+                    "is_bot": jogador.get("is_bot", False),
+                    "categoria": jogador.get("categoria"),
+                    "vida": 100,
+                    "ouro": 10,
+                    "banco": [],
+                    "loja": [],
+                    "tabuleiro": [],
+                    "sinergias": [],
+                    "vitorias": 0,
+                    "derrotas": 0,
+                    "empates": 0,
+                    "rodada": 0,
+                }
+            )
+
+        partida["jogadores"] = jogadores_estado
+
+    def obter_estado_partida(self, partida_id):
+        partida = self.partidas_ativas.get(partida_id)
+        if not partida:
+            return {"ok": False, "status": "partida_inexistente", "partida_id": partida_id}
+
+        self._inicializar_estado_partida(partida_id)
+        vivos = [j for j in partida["jogadores"] if j["vida"] > 0]
+        vencedor = vivos[0]["player_id"] if len(vivos) == 1 else None
+        return {
+            "ok": True,
+            "status": "finalizada" if vencedor else "em_andamento",
+            "partida_id": partida_id,
+            "rodada": partida.get("rodada", 0),
+            "jogadores_vivos": len(vivos),
+            "vencedor_id": vencedor,
+            "jogadores": deepcopy(partida["jogadores"]),
+            "historico_rodadas": deepcopy(partida.get("historico_rodadas", [])),
+        }
+
+    def simular_rodada(self, partida_id):
+        partida = self.partidas_ativas.get(partida_id)
+        if not partida:
+            return {"ok": False, "status": "partida_inexistente", "partida_id": partida_id}
+
+        self._inicializar_estado_partida(partida_id)
+        vivos = [j for j in partida["jogadores"] if j["vida"] > 0]
+        if len(vivos) <= 1:
+            return self.obter_estado_partida(partida_id)
+
+        partida["rodada"] += 1
+        for jogador in vivos:
+            jogador["rodada"] = partida["rodada"]
+            self._executar_turno_bot(partida, jogador)
+
+        historico_batalhas = self._simular_batalhas(partida)
+        eliminados_rodada = [j["player_id"] for j in partida["jogadores"] if j["vida"] <= 0]
+
+        resumo_rodada = {
+            "rodada": partida["rodada"],
+            "batalhas": historico_batalhas,
+            "eliminados": eliminados_rodada,
+        }
+        partida["historico_rodadas"].append(resumo_rodada)
+        return {
+            "ok": True,
+            "status": "rodada_simulada",
+            "partida_id": partida_id,
+            "rodada": partida["rodada"],
+            "resumo": resumo_rodada,
+        }
+
+    def simular_partida_completa(self, partida_id, max_rodadas=100):
+        partida = self.partidas_ativas.get(partida_id)
+        if not partida:
+            return {"ok": False, "status": "partida_inexistente", "partida_id": partida_id}
+
+        self._inicializar_estado_partida(partida_id)
+        for _ in range(max_rodadas):
+            estado = self.obter_estado_partida(partida_id)
+            if estado.get("status") == "finalizada":
+                return estado
+            self.simular_rodada(partida_id)
+
+        estado = self.obter_estado_partida(partida_id)
+        estado["status"] = "limite_rodadas"
+        return estado
 
     def _criar_fila(self):
         return {
