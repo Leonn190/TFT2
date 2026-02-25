@@ -1,3 +1,6 @@
+from Codigo.Classes.Regras import carregar_regras_partida
+
+
 class Partida:
     def __init__(self, partida_id, set_escolhido, tamanho_partida):
         self.partida_id = partida_id
@@ -7,6 +10,7 @@ class Partida:
         self.status = "buscando"
         self.ping_ms = 0
         self.estoque_compartilhado = {}
+        self.regras = carregar_regras_partida(set_escolhido)
 
     def adicionar_jogador(self, jogador):
         if jogador.player_id not in [existente.player_id for existente in self.jogadores]:
@@ -25,4 +29,5 @@ class Partida:
             "jogadores": [jogador.para_json() for jogador in self.jogadores],
             "ping_ms": self.ping_ms,
             "estoque_compartilhado": self.estoque_compartilhado,
+            "regras": self.regras,
         }
