@@ -36,7 +36,7 @@ class GerenciadorPartidas:
             "jogadores_na_fila": len(fila["jogadores"]),
         }
 
-    def atualizar_pareamento(self, set_escolhido, tamanho_partida=10, timeout_segundos=20):
+    def atualizar_pareamento(self, set_escolhido, tamanho_partida=10, timeout_segundos=10):
         fila = self._obter_fila(set_escolhido)
 
         if len(fila["jogadores"]) >= tamanho_partida:

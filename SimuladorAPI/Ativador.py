@@ -229,10 +229,6 @@ class Ativador:
                 return False, "sinergia_invalida"
             grupo["cartas"].extend(cartas)
         else:
-            if len(cartas) < 3:
-                estado_jogador["banco"].extend(cartas)
-                return False, "minimo_tres_cartas"
-
             sinergia_comum = set.intersection(*(self._sinergias_da_carta(carta) for carta in cartas))
             sinergia_comum.discard("-")
             if not sinergia_comum:
