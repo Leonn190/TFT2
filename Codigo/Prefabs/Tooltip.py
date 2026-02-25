@@ -59,7 +59,7 @@ class Tooltip:
         rect = pygame.Rect(x, y, largura_real, altura)
         caixa = pygame.Surface(rect.size, pygame.SRCALPHA)
         pygame.draw.rect(caixa, (16, 20, 28, 238), caixa.get_rect(), border_radius=10)
-        pygame.draw.rect(caixa, (180, 188, 204, 250), caixa.get_rect(), width=1, border_radius=10)
+        pygame.draw.rect(caixa, (0, 0, 0, 255), caixa.get_rect(), width=1, border_radius=10)
 
         cursor_y = padding
         caixa.blit(self.fonte_titulo.render(str(titulo), True, (238, 242, 248)), (padding, cursor_y))

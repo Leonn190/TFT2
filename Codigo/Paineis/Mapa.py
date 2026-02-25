@@ -39,7 +39,7 @@ class Mapa:
                 return item["slot"]
         return None
 
-    def desenhar(self, tela, mapa_slots, slot_destacado=None, cartas_piscando_ids=None):
+    def desenhar(self, tela, mapa_slots, slot_destacado=None, cartas_piscando_ids=None, carta_oculta_uid=None):
         pygame.draw.rect(tela, (36, 62, 44), self.rect, border_radius=14)
         pygame.draw.rect(tela, (118, 146, 124), self.rect, width=2, border_radius=14)
         tela.blit(self.fonte_titulo.render("Mapa", True, (236, 236, 236)), (self.rect.x + 14, self.rect.y + 8))
@@ -61,6 +61,9 @@ class Mapa:
             slot = item["slot"]
             rect = item["rect"]
             carta = slot.get("carta")
+            uid_carta = str(carta.get("uid")) if isinstance(carta, dict) and carta.get("uid") is not None else None
+            if uid_carta is not None and uid_carta == str(carta_oculta_uid):
+                carta = None
             destacado = slot_destacado is not None and slot.get("slot_id") == slot_destacado
 
             if not slot.get("desbloqueado"):

@@ -75,6 +75,12 @@ def criar_cartas_teste():
                     "raridade": raridade,
                     "custo": CUSTO_POR_RARIDADE[raridade],
                     "imagem": _imagem_brawler(nome, imagens_por_chave),
+                    "atk": str(linha.get("Atk") or "-").strip() or "-",
+                    "spd": str(linha.get("Spd") or "-").strip() or "-",
+                    "spa": str(linha.get("SpA") or "-").strip() or "-",
+                    "vel": str(linha.get("Vel") or "-").strip() or "-",
+                    "def": str(linha.get("Def") or "-").strip() or "-",
+                    "descricao": str(linha.get("Descrição") or "").strip(),
                     "set": "BrawlStars",
                 }
             )

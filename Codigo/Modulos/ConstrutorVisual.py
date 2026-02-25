@@ -77,11 +77,16 @@ class ConstrutorVisualCartucho:
     def desenhar_cartucho(self, tela, carta, rect, selecionada=False, destacada=False, alpha=255):
         raridade = str(self._obter_campo(carta, "raridade", "comum")).lower()
         cor_fundo = CORES_RARIDADE.get(raridade, CORES_RARIDADE["comum"])
-        cor_borda = (250, 222, 94) if destacada or selecionada else (238, 238, 238)
+        cor_borda = (0, 0, 0)
 
         card_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
         pygame.draw.rect(card_surface, (*cor_fundo, alpha), card_surface.get_rect(), border_radius=10)
         pygame.draw.rect(card_surface, (*cor_borda, alpha), card_surface.get_rect(), width=2, border_radius=10)
+
+        if destacada or selecionada:
+            brilho = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+            pygame.draw.rect(brilho, (250, 222, 94, min(180, alpha)), brilho.get_rect(), width=2, border_radius=10)
+            card_surface.blit(brilho, (0, 0))
 
         imagem_rect = pygame.Rect(6, 6, rect.width - 12, rect.height - 40)
         imagem = self._carregar_imagem(self._obter_campo(carta, "imagem"), imagem_rect.size)
