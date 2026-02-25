@@ -15,6 +15,29 @@ CORES_RARIDADE = {
 }
 
 
+def construir_avatar_circular(caminho, diametro):
+    if not caminho:
+        return None
+
+    arquivo = Path(caminho)
+    if not arquivo.exists():
+        return None
+
+    try:
+        imagem = pygame.image.load(str(arquivo)).convert_alpha()
+    except pygame.error:
+        return None
+
+    imagem = pygame.transform.smoothscale(imagem, (diametro, diametro))
+    avatar = pygame.Surface((diametro, diametro), pygame.SRCALPHA)
+    mascara = pygame.Surface((diametro, diametro), pygame.SRCALPHA)
+    pygame.draw.circle(mascara, (255, 255, 255, 255), (diametro // 2, diametro // 2), diametro // 2)
+
+    avatar.blit(imagem, (0, 0))
+    avatar.blit(mascara, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    return avatar
+
+
 class ConstrutorVisualCartucho:
     def __init__(self):
         self._cache_imagens = {}

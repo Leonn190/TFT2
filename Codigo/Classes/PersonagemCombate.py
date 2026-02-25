@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import math
 import random
-from pathlib import Path
-
 import pygame
+
+from Codigo.Modulos.ConstrutorVisual import construir_avatar_circular
 
 
 class PersonagemCombate:
@@ -19,6 +19,7 @@ class PersonagemCombate:
         self.defesa = self._int_campo("def", "Def", padrao=10)
         self.spd = self._int_campo("spd", "SpD", padrao=10)
         self.vel = self._int_campo("vel", "Vel", padrao=30)
+        self.velocidade_base = max(90.0, float(self.vel) * 2.2)
         self.massa = max(8.0, self.vida_max / 40.0)
         self.raio = max(18, min(42, int(14 + self.massa * 1.5)))
 
@@ -56,19 +57,13 @@ class PersonagemCombate:
 
     def _velocidade_inicial(self):
         angulo = random.uniform(0, math.tau)
-        modulo = max(70.0, float(self.vel) * 1.9)
+        modulo = self.velocidade_base
         return math.cos(angulo) * modulo, math.sin(angulo) * modulo
 
     def _carregar_imagem(self):
-        caminho = Path(str(self.carta.get("imagem") or ""))
-        if not caminho.exists():
-            return None
-        try:
-            imagem = pygame.image.load(str(caminho)).convert_alpha()
-            diametro = self.raio * 2 - 4
-            return pygame.transform.smoothscale(imagem, (diametro, diametro))
-        except pygame.error:
-            return None
+        diametro = self.raio * 2 - 4
+        return construir_avatar_circular(str(self.carta.get("imagem") or ""), diametro)
+
 
     @property
     def viva(self):

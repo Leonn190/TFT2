@@ -14,6 +14,19 @@ def aplicar_reducao_armadura_lol(dano_bruto, armadura):
     return dano_bruto * (2.0 - (100.0 / (100.0 - armadura)))
 
 
+def _normalizar_velocidade(personagem):
+    alvo = max(40.0, float(getattr(personagem, "velocidade_base", personagem.velocidade_escalar or 0.0)))
+    atual = max(0.0, personagem.velocidade_escalar)
+    if atual <= 0.001:
+        personagem.vx = alvo
+        personagem.vy = 0.0
+        return
+
+    fator = alvo / atual
+    personagem.vx *= fator
+    personagem.vy *= fator
+
+
 def atualizar_movimento(personagem, arena_rect, dt):
     personagem.x += personagem.vx * dt
     personagem.y += personagem.vy * dt
@@ -31,6 +44,8 @@ def atualizar_movimento(personagem, arena_rect, dt):
     elif personagem.y + personagem.raio >= arena_rect.bottom:
         personagem.y = arena_rect.bottom - personagem.raio
         personagem.vy *= -1
+
+    _normalizar_velocidade(personagem)
 
 
 def resolver_colisao_elastica(a, b):
@@ -74,6 +89,9 @@ def resolver_colisao_elastica(a, b):
     a.vy -= iy / a.massa
     b.vx += ix / b.massa
     b.vy += iy / b.massa
+
+    _normalizar_velocidade(a)
+    _normalizar_velocidade(b)
     return True
 
 

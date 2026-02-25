@@ -1,4 +1,4 @@
-from Codigo.Classes.Regras import carregar_regras_partida
+from Codigo.Modulos.Regras import carregar_regras_partida
 
 
 class Partida:
