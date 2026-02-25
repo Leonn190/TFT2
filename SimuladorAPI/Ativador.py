@@ -5,23 +5,6 @@ from SimuladorAPI.teste import criar_cartas_teste, criar_estoque_por_raridade
 
 
 class Ativador:
-    TABELA_CHANCES_LOJA = {
-        1: {"comum": 80, "incomum": 15, "raro": 5, "epico": 0, "lendario": 0, "mitico": 0},
-        3: {"comum": 62, "incomum": 30, "raro": 8, "epico": 0, "lendario": 0, "mitico": 0},
-        4: {"comum": 50, "incomum": 38, "raro": 10, "epico": 2, "lendario": 0, "mitico": 0},
-        5: {"comum": 40, "incomum": 42, "raro": 15, "epico": 3, "lendario": 0, "mitico": 0},
-        6: {"comum": 29, "incomum": 45, "raro": 20, "epico": 5, "lendario": 1, "mitico": 0},
-        7: {"comum": 22, "incomum": 38, "raro": 30, "epico": 8, "lendario": 2, "mitico": 0},
-        8: {"comum": 20, "incomum": 28, "raro": 38, "epico": 10, "lendario": 3, "mitico": 1},
-        9: {"comum": 18, "incomum": 22, "raro": 31, "epico": 20, "lendario": 6, "mitico": 3},
-        10: {"comum": 16, "incomum": 20, "raro": 25, "epico": 25, "lendario": 10, "mitico": 4},
-        11: {"comum": 15, "incomum": 18, "raro": 21, "epico": 26, "lendario": 15, "mitico": 5},
-        12: {"comum": 13, "incomum": 15, "raro": 18, "epico": 24, "lendario": 20, "mitico": 10},
-        13: {"comum": 12, "incomum": 13, "raro": 15, "epico": 20, "lendario": 25, "mitico": 15},
-        14: {"comum": 10, "incomum": 10, "raro": 12, "epico": 18, "lendario": 30, "mitico": 20},
-        15: {"comum": 8, "incomum": 9, "raro": 10, "epico": 16, "lendario": 32, "mitico": 25},
-    }
-
     def __init__(self):
         self._partidas = {}
         self.ping_ms = 35
@@ -38,26 +21,31 @@ class Ativador:
         if partida_id in self._partidas:
             return
 
-        cartas_base = criar_cartas_teste()
-        estoque = criar_estoque_por_raridade(cartas_base)
+        regras_partida = deepcopy(getattr(partida, "regras", {}) or {})
+        set_escolhido = getattr(partida, "set_escolhido", "BrawlStars") or "BrawlStars"
+
+        cartas_base = criar_cartas_teste(set_escolhido=set_escolhido, regras=regras_partida)
+        estoque = criar_estoque_por_raridade(cartas_base, regras=regras_partida)
         catalogo = {carta["id"]: carta for carta in cartas_base}
 
         self._partidas[partida_id] = {
             "catalogo": catalogo,
             "estoque": estoque,
             "jogadores": {},
+            "regras": regras_partida,
         }
 
         for jogador in partida.jogadores:
-            self._partidas[partida_id]["jogadores"][jogador.player_id] = self._estado_inicial_jogador()
+            self._partidas[partida_id]["jogadores"][jogador.player_id] = self._estado_inicial_jogador(partida_id)
 
         for jogador in partida.jogadores:
             estado = self._partidas[partida_id]["jogadores"][jogador.player_id]
-            self._atualizar_progresso_jogador(estado)
-            estado["banco"] = self._comprar_cartas_estoque(partida_id, quantidade=3, raridades_bloqueadas={"epico", "lendario", "mitico"})
+            self._atualizar_progresso_jogador(partida_id, estado)
+            raridades_bloqueadas = set(self._obter_regra_partida(partida_id, "raridades_bloqueadas_banco_inicial", ["epico", "lendario", "mitico"]))
+            estado["banco"] = self._comprar_cartas_estoque(partida_id, quantidade=3, raridades_bloqueadas=raridades_bloqueadas)
             estado["loja"] = self._comprar_cartas_estoque(partida_id, quantidade=3, chances_loja=estado.get("chances_loja"))
 
-    def _estado_inicial_jogador(self):
+    def _estado_inicial_jogador(self, partida_id):
         return {
             "vida": 100,
             "ouro": 1000,
@@ -71,7 +59,7 @@ class Ativador:
             "selecao": [],
             "sinergias": [],
             "slots_adquiridos": 1,
-            "chances_loja": deepcopy(self.TABELA_CHANCES_LOJA[1]),
+            "chances_loja": self._obter_chances_loja_por_slots(partida_id, 1),
         }
 
     @staticmethod
@@ -94,16 +82,28 @@ class Ativador:
     def _contar_slots_adquiridos(estado_jogador):
         return sum(1 for slot in estado_jogador["mapa"] if slot.get("desbloqueado"))
 
-    def _obter_chances_loja_por_slots(self, slots_adquiridos):
+    def _obter_regra_partida(self, partida_id, chave, padrao=None):
+        return self._partidas.get(partida_id, {}).get("regras", {}).get(chave, padrao)
+
+    def _obter_tabela_chances_loja(self, partida_id):
+        tabela = self._obter_regra_partida(partida_id, "chances_loja_por_slots", {})
+        return tabela if isinstance(tabela, dict) and tabela else {
+            1: {"comum": 80, "incomum": 15, "raro": 5, "epico": 0, "lendario": 0, "mitico": 0},
+            15: {"comum": 8, "incomum": 9, "raro": 10, "epico": 16, "lendario": 32, "mitico": 25},
+        }
+
+    def _obter_chances_loja_por_slots(self, partida_id, slots_adquiridos):
+        tabela_chances = self._obter_tabela_chances_loja(partida_id)
         slots_normalizados = max(1, min(15, int(slots_adquiridos)))
         if slots_normalizados == 2:
             slots_normalizados = 3
-        return deepcopy(self.TABELA_CHANCES_LOJA.get(slots_normalizados, self.TABELA_CHANCES_LOJA[15]))
+        chave_maxima = max(tabela_chances.keys())
+        return deepcopy(tabela_chances.get(slots_normalizados, tabela_chances[chave_maxima]))
 
-    def _atualizar_progresso_jogador(self, estado_jogador):
+    def _atualizar_progresso_jogador(self, partida_id, estado_jogador):
         slots_adquiridos = self._contar_slots_adquiridos(estado_jogador)
         estado_jogador["slots_adquiridos"] = slots_adquiridos
-        estado_jogador["chances_loja"] = self._obter_chances_loja_por_slots(slots_adquiridos)
+        estado_jogador["chances_loja"] = self._obter_chances_loja_por_slots(partida_id, slots_adquiridos)
 
     @staticmethod
     def _raridade_carta(carta):
@@ -175,8 +175,8 @@ class Ativador:
         estado = self._partidas[partida_id]
 
         for jogador in partida.jogadores:
-            dados = estado["jogadores"].setdefault(jogador.player_id, self._estado_inicial_jogador())
-            self._atualizar_progresso_jogador(dados)
+            dados = estado["jogadores"].setdefault(jogador.player_id, self._estado_inicial_jogador(partida_id))
+            self._atualizar_progresso_jogador(partida_id, dados)
             jogador.vida = dados["vida"]
             jogador.ouro = dados["ouro"]
             jogador.banco = deepcopy(dados["banco"])
@@ -185,7 +185,7 @@ class Ativador:
             jogador.selecao = deepcopy(dados["selecao"])
             jogador.sinergias = deepcopy(dados["sinergias"])
             jogador.slots_adquiridos = dados.get("slots_adquiridos", 1)
-            jogador.chances_loja = deepcopy(dados.get("chances_loja", self.TABELA_CHANCES_LOJA[1]))
+            jogador.chances_loja = deepcopy(dados.get("chances_loja", self._obter_chances_loja_por_slots(partida_id, 1)))
 
         self.atualizar_outros_players(partida, player_local_id)
         partida.ping_ms = self.ping_ms

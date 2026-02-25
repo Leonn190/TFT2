@@ -18,7 +18,20 @@ from Codigo.Telas.Opcoes import InicializaTelaOpcoes, ProcessarEventosTelaOpcoes
 servico_pareamento = ServidorPareamento()
 servidor_estrategista = ServidorEstrategista()
 
-INTERVALO_BATALHA_MS = 40000
+def _obter_regras_partida(partida):
+    regras = getattr(partida, "regras", None) if partida is not None else None
+    return regras if isinstance(regras, dict) else {}
+
+
+def _intervalo_batalha_ms(partida):
+    regras = _obter_regras_partida(partida)
+    return max(1000, int(regras.get("tempo_entre_combates_ms", 40000)))
+
+
+def _trilha_batalhas_padrao(partida):
+    regras = _obter_regras_partida(partida)
+    trilha = regras.get("trilha_batalhas") if isinstance(regras.get("trilha_batalhas"), list) else None
+    return trilha if trilha is not None else []
 
 
 def _obter_jogador_local(partida):
@@ -35,25 +48,15 @@ def _obter_jogador_por_id(partida, player_id):
     return _obter_jogador_local(partida)
 
 
-def _inicializar_progresso_trilha(INFO):
+def _inicializar_progresso_trilha(INFO, partida):
     if "TrilhaBatalhas" not in INFO:
-        INFO["TrilhaBatalhas"] = [
-            {"tipo": "normal", "resultado": None},
-            {"tipo": "augment", "resultado": None},
-            {"tipo": "normal", "resultado": None},
-            {"tipo": "normal", "resultado": None},
-            {"tipo": "augment", "resultado": None},
-            {"tipo": "normal", "resultado": None},
-            {"tipo": "normal", "resultado": None},
-            {"tipo": "augment", "resultado": None},
-            {"tipo": "normal", "resultado": None},
-        ]
+        INFO["TrilhaBatalhas"] = _trilha_batalhas_padrao(partida)
     if "IndiceBatalhaAtual" not in INFO:
         INFO["IndiceBatalhaAtual"] = 0
 
 
-def _tempo_restante_batalha(INFO):
-    return max(0, INFO.get("TempoRestanteBatalhaMs", INTERVALO_BATALHA_MS))
+def _tempo_restante_batalha(INFO, partida):
+    return max(0, INFO.get("TempoRestanteBatalhaMs", _intervalo_batalha_ms(partida)))
 
 
 def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
@@ -89,7 +92,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         carta_oculta_uid=(Parametros["DragMapa"]["carta"].get("uid") if Parametros.get("DragMapa") and Parametros["DragMapa"].get("carta") else None),
     )
     Parametros["Trilha"].desenhar_trilha(TELA, INFO.get("TrilhaBatalhas", []), indice_atual=INFO.get("IndiceBatalhaAtual", 0))
-    Parametros["Trilha"].desenhar_temporizador(TELA, _tempo_restante_batalha(INFO), duracao_total_ms=INTERVALO_BATALHA_MS)
+    Parametros["Trilha"].desenhar_temporizador(TELA, _tempo_restante_batalha(INFO, partida), duracao_total_ms=_intervalo_batalha_ms(partida))
     Parametros["Sinergias"].desenhar(
         TELA,
         jogador_ativo.sinergias,
@@ -119,9 +122,9 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
     if partida is not None:
         servidor_estrategista.sincronizar_partida(partida)
 
-    _inicializar_progresso_trilha(INFO)
+    _inicializar_progresso_trilha(INFO, partida)
     if INFO.get("TempoRestanteBatalhaMs") is None:
-        INFO["TempoRestanteBatalhaMs"] = INTERVALO_BATALHA_MS
+        INFO["TempoRestanteBatalhaMs"] = _intervalo_batalha_ms(partida)
 
     return {
         "TelaAtiva": TelaEstrategista,
@@ -159,7 +162,8 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
     while ESTADOS["Estrategista"] and ESTADOS["Rodando"]:
         dt_ms = RELOGIO.get_time()
         acumulador_sync_ms += dt_ms
-        INFO["TempoRestanteBatalhaMs"] = max(0, INFO.get("TempoRestanteBatalhaMs", INTERVALO_BATALHA_MS) - dt_ms)
+        intervalo_batalha_ms = _intervalo_batalha_ms(Parametros.get("PartidaAtual"))
+        INFO["TempoRestanteBatalhaMs"] = max(0, INFO.get("TempoRestanteBatalhaMs", intervalo_batalha_ms) - dt_ms)
 
         eventos = pygame.event.get()
         for evento in eventos:
