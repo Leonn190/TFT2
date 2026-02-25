@@ -8,7 +8,6 @@ from Codigo.Cenas.CenaMenu import MenuLoop
 from Codigo.Telas.TelaEscolhaSet import listar_sets_existentes
 from ConfigFixa import carregar_configuracoes_fixas
 
-
 pygame.init()
 
 # Tela principal do jogo

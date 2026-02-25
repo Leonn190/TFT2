@@ -27,6 +27,12 @@ def obter_cor(nome):
 
 
 def obter_fonte(tamanho, negrito=False):
+    # Garante que o módulo de fonte está pronto mesmo se alguém chamar isso antes do pygame.init()
+    if not pygame.get_init():
+        pygame.init()
+    if not pygame.font.get_init():
+        pygame.font.init()
+
     chave = (tamanho, negrito)
     if chave not in _CACHE_FONTES:
         if CAMINHO_FONTE_PADRAO.exists():
