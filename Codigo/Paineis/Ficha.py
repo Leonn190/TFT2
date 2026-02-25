@@ -57,15 +57,13 @@ class Ficha:
         }
 
     def desenhar(self, tela, carta_hover=None):
+        if not carta_hover:
+            return
+
         pygame.draw.rect(tela, (38, 42, 52), self.rect, border_radius=12)
         pygame.draw.rect(tela, (0, 0, 0), self.rect, width=2, border_radius=12)
         titulo = self.fonte_titulo.render("Ficha", True, (236, 236, 236))
         tela.blit(titulo, (self.rect.x + 12, self.rect.y + 8))
-
-        if not carta_hover:
-            vazio = self.fonte_attr.render("Passe o mouse no mapa", True, (176, 184, 198))
-            tela.blit(vazio, (self.rect.x + 12, self.rect.y + 56))
-            return
 
         ficha = self.gerar_ficha(carta_hover)
         if ficha is None:
