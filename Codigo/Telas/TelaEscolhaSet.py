@@ -4,7 +4,7 @@ from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 from Codigo.Prefabs.Botao import Botao
 
 
-def listar_sets_existentes(caminho_sets="Recursos/Sets"):
+def listar_sets_existentes(caminho_sets="Sets"):
     raiz = Path(caminho_sets)
     if not raiz.exists() or not raiz.is_dir():
         return []
@@ -12,8 +12,15 @@ def listar_sets_existentes(caminho_sets="Recursos/Sets"):
     return sorted(
         pasta.name
         for pasta in raiz.iterdir()
-        if pasta.is_dir() and not pasta.name.startswith(".")
+        if pasta.is_dir() and not pasta.name.startswith(".") and pasta.name == "BrawlStars"
     )
+
+
+def _icone_set(set_nome):
+    mapa = {
+        "BrawlStars": "Sets/BrawlStars/Imagens/Outros/Icones.jpg",
+    }
+    return mapa.get(set_nome)
 
 
 def InicializaTelaEscolhaSet(CONFIG):
@@ -28,7 +35,7 @@ def InicializaTelaEscolhaSet(CONFIG):
 
     for indice, set_nome in enumerate(CONFIG.get("SetsDisponiveis", [])):
         x = x_inicial + indice * (largura + espaco)
-        botoes_sets.append(Botao(x, y, largura, altura, set_nome, estilo="selecao"))
+        botoes_sets.append(Botao(x, y, largura, altura, set_nome, estilo="selecao", icone_path=_icone_set(set_nome)))
 
     botao_voltar = Botao(60, 920, 220, 70, "Voltar")
     botao_buscar = Botao(1640, 920, 220, 70, "Buscar")
@@ -46,8 +53,8 @@ def TelaEscolhaSet(TELA, ESTADOS, CONFIG, INFO, Parametros):
     fonte_titulo = obter_fonte(52, negrito=False)
     fonte_subtitulo = obter_fonte(30)
 
-    titulo = fonte_titulo.render("Escolha os Sets", True, obter_cor("titulo"))
-    subtitulo = fonte_subtitulo.render("Selecione um ou mais sets e clique em Buscar", True, obter_cor("subtitulo"))
+    titulo = fonte_titulo.render("Escolha o Set", True, obter_cor("titulo"))
+    subtitulo = fonte_subtitulo.render("Brawl Stars está disponível como set inicial", True, obter_cor("subtitulo"))
 
     TELA.blit(titulo, titulo.get_rect(center=(960, 140)))
     TELA.blit(subtitulo, subtitulo.get_rect(center=(960, 200)))

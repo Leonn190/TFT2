@@ -1,10 +1,12 @@
+from pathlib import Path
+
 import pygame
 
 from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
 
 
 class Botao:
-    def __init__(self, x, y, largura, altura, texto, fonte=None, estilo="padrao", valor=False):
+    def __init__(self, x, y, largura, altura, texto, fonte=None, estilo="padrao", valor=False, icone_path=None):
         self.rect = pygame.Rect(x, y, largura, altura)
         self.texto = texto
         self.fonte = fonte or obter_fonte(32)
@@ -14,6 +16,16 @@ class Botao:
         self.cor_borda = obter_cor("botao_borda")
         self.estilo = estilo
         self.ativo = valor
+        self.icone_path = Path(icone_path) if icone_path else None
+        self._icone_surface = None
+
+    def _obter_icone(self, tamanho):
+        if self.icone_path is None or not self.icone_path.exists():
+            return None
+        if self._icone_surface is None or self._icone_surface.get_size() != tamanho:
+            imagem = pygame.image.load(str(self.icone_path)).convert_alpha()
+            self._icone_surface = pygame.transform.smoothscale(imagem, tamanho)
+        return self._icone_surface
 
     def desenhar(self, tela):
         if self.estilo == "alavanca":
@@ -54,7 +66,6 @@ class Botao:
         pygame.draw.circle(tela, (232, 232, 232), centro, raio)
         pygame.draw.circle(tela, self.cor_borda, centro, raio, width=2)
 
-
     def _desenhar_selecao(self, tela):
         mouse_pos = pygame.mouse.get_pos()
         em_hover = self.rect.collidepoint(mouse_pos)
@@ -69,8 +80,15 @@ class Botao:
         pygame.draw.rect(tela, cor, self.rect, border_radius=12)
         pygame.draw.rect(tela, self.cor_borda, self.rect, width=3, border_radius=12)
 
+        icone = self._obter_icone((56, 56))
+        centro_texto_x = self.rect.centerx
+        if icone is not None:
+            icone_rect = icone.get_rect(midleft=(self.rect.x + 14, self.rect.centery))
+            tela.blit(icone, icone_rect)
+            centro_texto_x = self.rect.centerx + 20
+
         texto_render = self.fonte.render(self.texto, True, self.cor_texto)
-        texto_rect = texto_render.get_rect(center=self.rect.center)
+        texto_rect = texto_render.get_rect(center=(centro_texto_x, self.rect.centery))
         tela.blit(texto_render, texto_rect)
 
     def atualizar_evento(self, evento):
