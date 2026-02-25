@@ -5,7 +5,7 @@ from Codigo.Modulos.GeradoresVisuais import obter_fonte
 from Codigo.Paineis.Banco import Banco
 from Codigo.Paineis.Loja import Loja
 from Codigo.Paineis.Mapa import Mapa
-from Codigo.Paineis.Selecao import Selecao
+from Codigo.Paineis.Selecao import Combatentes
 from Codigo.Paineis.Sinergias import Sinergias
 from Codigo.Paineis.Visualizador import Visualizador
 from Codigo.Server.Pareamento import ServidorPareamento
@@ -79,7 +79,7 @@ def TelaEstrategista(TELA, ESTADOS, CONFIG, INFO, Parametros):
         tick_ms=pygame.time.get_ticks(),
     )
     Parametros["Sinergias"].desenhar(TELA, jogador_ativo.sinergias)
-    Parametros["Selecao"].desenhar(TELA, jogador_ativo.selecao, carta_drag=Parametros["DragMapa"]["carta"] if Parametros["DragMapa"] else None)
+    Parametros["Combatentes"].desenhar(TELA, jogador_ativo.selecao, carta_drag=Parametros["DragMapa"]["carta"] if Parametros["DragMapa"] else None)
     Parametros["Visualizador"].desenhar(TELA, partida.jogadores, Parametros.get("JogadorVisualizadoId", "local-1"))
     Parametros["Banco"].desenhar(TELA, jogador_ativo.banco, cartas_selecionadas=cartas_sel, cartas_drag=cartas_drag)
     Parametros["Loja"].desenhar(TELA, jogador_ativo.loja)
@@ -105,7 +105,7 @@ def InicializaEstrategista(TELA, ESTADOS, CONFIG, INFO):
         "Loja": Loja(),
         "Mapa": Mapa(),
         "Sinergias": Sinergias(),
-        "Selecao": Selecao(),
+        "Combatentes": Combatentes(),
         "Visualizador": Visualizador(),
         "JogadorVisualizadoId": "local-1",
         "DragMapa": None,
@@ -191,6 +191,20 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
             if jogador_ativo is None:
                 continue
 
+            if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 3:
+                carta_banco = Parametros["Banco"].carta_por_posicao(evento.pos, jogador_ativo.banco)
+                carta_mapa = Parametros["Mapa"].carta_por_posicao(evento.pos, jogador_ativo.mapa)
+
+                if carta_banco is not None:
+                    _alternar_selecao_carta(carta_banco["carta"], Parametros, jogador_ativo)
+                    _atualizar_cartas_arrastadas(Parametros, jogador_ativo)
+                    continue
+
+                if carta_mapa is not None:
+                    _alternar_selecao_carta(carta_mapa["carta"], Parametros, jogador_ativo)
+                    _atualizar_cartas_arrastadas(Parametros, jogador_ativo)
+                    continue
+
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 player_id = Parametros["Visualizador"].jogador_clicado(evento.pos, partida.jogadores)
                 if player_id is not None:
@@ -200,19 +214,18 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 carta_banco = Parametros["Banco"].carta_por_posicao(evento.pos, jogador_ativo.banco)
                 carta_mapa = Parametros["Mapa"].carta_por_posicao(evento.pos, jogador_ativo.mapa)
 
-                if carta_banco is not None:
-                    _alternar_selecao_carta(carta_banco["carta"], Parametros, jogador_ativo)
-                    _atualizar_cartas_arrastadas(Parametros, jogador_ativo)
-                    if carta_banco["carta"].get("uid") in Parametros["CartasSelecionadasUids"]:
-                        Parametros["ModoArrasto"] = True
+                Parametros["ModoArrasto"] = False
+                Parametros["GrupoDestacado"] = None
+                Parametros["DragMapa"] = None
+
+                if carta_banco is not None and carta_banco["carta"].get("uid") in Parametros["CartasSelecionadasUids"]:
+                    Parametros["ModoArrasto"] = True
                     continue
 
                 if carta_mapa is not None:
-                    _alternar_selecao_carta(carta_mapa["carta"], Parametros, jogador_ativo)
-                    _atualizar_cartas_arrastadas(Parametros, jogador_ativo)
+                    Parametros["DragMapa"] = carta_mapa
                     if carta_mapa["carta"].get("uid") in Parametros["CartasSelecionadasUids"]:
                         Parametros["ModoArrasto"] = True
-                    Parametros["DragMapa"] = carta_mapa
                     continue
 
             if evento.type == pygame.MOUSEMOTION and Parametros["ModoArrasto"]:
@@ -221,7 +234,7 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
 
             if evento.type == pygame.MOUSEBUTTONUP and evento.button == 1:
                 if Parametros["DragMapa"] is not None:
-                    indice_selecao = Parametros["Selecao"].slot_por_posicao(evento.pos)
+                    indice_selecao = Parametros["Combatentes"].slot_por_posicao(evento.pos)
                     if indice_selecao is not None:
                         servidor_estrategista.mover_mapa_para_selecao(
                             partida,
@@ -235,7 +248,7 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     grupo_id = Parametros["Mapa"].grupo_compativel_para_arraste(evento.pos, jogador_ativo.mapa, Parametros["CartasArrastadas"])
                     alvo_grupo_id = grupo_id
                     if alvo_grupo_id is None:
-                        if len(Parametros["CartasArrastadas"]) < 3:
+                        if len(Parametros["CartasArrastadas"]) < 1:
                             Parametros["CartasSelecionadasUids"] = []
                             Parametros["CartasArrastadas"] = []
                             Parametros["ModoArrasto"] = False

@@ -3,7 +3,7 @@ import pygame
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 
-class Selecao:
+class Combatentes:
     def __init__(self, largura_tela=1920, altura_tela=1080):
         self.rect = pygame.Rect(int(largura_tela * 0.24), int(altura_tela * 0.69), int(largura_tela * 0.50), int(altura_tela * 0.09))
         self.fonte_item = obter_fonte(18)
@@ -58,3 +58,6 @@ class Selecao:
             sinergia = self.fonte_item.render(carta_drag.get("sinergia", "-"), True, (220, 226, 234))
             tela.blit(nome, (card.x + 8, card.y + 6))
             tela.blit(sinergia, (card.x + 8, card.y + 26))
+
+
+Selecao = Combatentes
