@@ -54,6 +54,13 @@ def _atualizar_discord_presence_batalha(INFO, simulador, jogador_local):
     discord_presence.atualizar_batalha(jogador_local, inimigo=inimigo)
 
 
+def _registrar_fim_batalha_para_todos(partida):
+    if partida is None:
+        return
+    for jogador in getattr(partida, "jogadores", []):
+        servidor_estrategista.registrar_fim_batalha(partida, jogador.player_id)
+
+
 def TelaBatalha(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill((18, 16, 24))
     simulador = Parametros.get("Simulador")
@@ -118,8 +125,7 @@ def BatalhaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
         _atualizar_discord_presence_batalha(INFO, simulador, jogador_local)
 
         if simulador is None:
-            if jogador_local is not None:
-                servidor_estrategista.registrar_fim_batalha(partida, jogador_local.player_id)
+            _registrar_fim_batalha_para_todos(partida)
             INFO["TempoRestanteBatalhaMs"] = 40000
             FecharIris(TELA, INFO, fps=CONFIG["FPS"])
             ESTADOS["Batalha"] = False
@@ -131,14 +137,16 @@ def BatalhaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
             if simulador.tempo_fim_ms is None:
                 simulador.tempo_fim_ms = pygame.time.get_ticks() + 1000
                 dano, lado_perdedor = simulador.dano_ao_perdedor()
+                inimigo = getattr(simulador, "inimigo_base", None)
                 if lado_perdedor == "aliado" and jogador_local is not None:
                     jogador_local.vida = max(0, jogador_local.vida - dano)
                     _registrar_resultado_batalha(INFO, "derrota")
-                elif lado_perdedor == "inimigo" and jogador_local is not None:
-                    _registrar_resultado_batalha(INFO, "vitoria")
+                elif lado_perdedor == "inimigo" and inimigo is not None:
+                    inimigo.vida = max(0, inimigo.vida - dano)
+                    if jogador_local is not None:
+                        _registrar_resultado_batalha(INFO, "vitoria")
 
-                if partida is not None and jogador_local is not None:
-                    servidor_estrategista.registrar_fim_batalha(partida, jogador_local.player_id)
+                _registrar_fim_batalha_para_todos(partida)
 
             if pygame.time.get_ticks() >= simulador.tempo_fim_ms:
                 INFO["TempoRestanteBatalhaMs"] = 40000
