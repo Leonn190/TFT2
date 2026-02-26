@@ -7,17 +7,19 @@ import pygame
 from Codigo.Classes.PlayerCombate import PlayerCombate
 from Codigo.Modulos.FisicaCombate import atualizar_movimento, processar_dano_colisao, resolver_colisao_elastica
 from Codigo.Modulos.GeradoresVisuais import obter_fonte
+from Codigo.Paineis.Arena import ArenaBatalha
 from Codigo.Paineis.FichaCombate import FichaCombate
 
 
 class SimuladorBatalha:
-    def __init__(self, aliado, inimigo, seed=1337):
+    def __init__(self, aliado, inimigo, seed=1337, numero_batalha=1, zoom=1.0):
         self.seed = int(seed)
         self.rng = random.Random(self.seed)
         self.aliado_base = PlayerCombate(aliado, rng=self.rng)
         self.inimigo_base = PlayerCombate(inimigo, rng=self.rng)
 
-        self.arena = pygame.Rect(430, 160, 1060, 700)
+        self.arena_config = ArenaBatalha(430, 160, 1060, 700, numero_batalha=numero_batalha, zoom=zoom)
+        self.arena = self.arena_config.rect
         self.ficha_esquerda = pygame.Rect(20, 160, 380, 700)
         self.ficha_direita = pygame.Rect(1520, 160, 380, 700)
 
@@ -38,8 +40,8 @@ class SimuladorBatalha:
 
     def _iniciar_round(self, indice):
         self.round_atual = indice
-        self.time_aliado = self.aliado_base.montar_time_linha(indice, "aliado", self.arena)
-        self.time_inimigo = self.inimigo_base.montar_time_linha(indice, "inimigo", self.arena)
+        self.time_aliado = self.aliado_base.montar_time_linha(indice, "aliado", self.arena_config)
+        self.time_inimigo = self.inimigo_base.montar_time_linha(indice, "inimigo", self.arena_config)
 
     def _avaliar_fim_round(self):
         vivos_aliados = [p for p in self.time_aliado if p.viva]

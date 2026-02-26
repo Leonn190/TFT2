@@ -241,11 +241,6 @@ class Ativador:
         partida.seed_combate = estado.get("seed_combate", self._seed_padrao)
         partida.log_eventos = deepcopy(estado.get("log_eventos", []))
 
-        ids_jogadores = [getattr(j, "player_id", None) for j in getattr(partida, "jogadores", []) if getattr(j, "player_id", None)]
-        batalhas = self._controlador_geral.simular_e_aplicar_batalhas(estado, ids_jogadores)
-        for batalha in batalhas:
-            self._registrar_evento(partida_id, batalha.get("vencedor_id"), "resultado_batalha", batalha)
-
         for jogador in partida.jogadores:
             dados = estado["jogadores"].get(jogador.player_id, {})
             jogador.vida = dados.get("vida", jogador.vida)
@@ -627,13 +622,7 @@ class Ativador:
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         self._registrar_evento(self._chave(partida), player_id, "mover_mapa_para_banco", {"slot_id": slot_id})
         return True, "ok"
-
-
-    @staticmethod
-    def _vida_jogador_partida(partida, player_id):
-        estado_partida = self._partidas[partida_id]
-        self._controlador_geral.avancar_tempo(estado_partida, 1000)
-
+    def _vida_jogador_partida(self, partida, player_id):
         for jogador in getattr(partida, "jogadores", []):
             if getattr(jogador, "player_id", None) == player_id:
                 return getattr(jogador, "vida", None)
