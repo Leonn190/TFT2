@@ -8,6 +8,7 @@ class PlayerCombate:
         self.jogador_base = jogador_base
         self.player_id = jogador_base.player_id
         self.nome = jogador_base.nome
+        self.vida = getattr(jogador_base, "vida", 100)
         self.rng = rng
 
     def _cartas_por_linha(self, indice_linha):

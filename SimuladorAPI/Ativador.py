@@ -2,6 +2,7 @@ import random
 from copy import deepcopy
 
 from SimuladorAPI.teste import criar_cartas_teste, criar_estoque_por_raridade
+from SimuladorAPI.Bot import Bot
 
 
 class Ativador:
@@ -37,6 +38,7 @@ class Ativador:
             "seed_combate": int(regras_partida.get("seed_combate", self._seed_padrao)),
             "log_eventos": [],
             "tick_evento": 0,
+            "bot_controladores": {},
         }
 
         for jogador in partida.jogadores:
@@ -210,6 +212,8 @@ class Ativador:
         partida_id = self._chave(partida)
         estado = self._partidas[partida_id]
 
+        self.processar_turnos_bots(partida)
+
         for jogador in partida.jogadores:
             dados = estado["jogadores"].setdefault(jogador.player_id, self._estado_inicial_jogador(partida_id))
             self._atualizar_progresso_jogador(partida_id, dados)
@@ -236,45 +240,23 @@ class Ativador:
         if estado_jogador is None:
             return False, "jogador_inexistente"
 
-        if not estado_jogador.get("loja"):
-            self.roletar_loja(partida, player_id, custo=0)
+        bot_controladores = self._partidas[partida_id].setdefault("bot_controladores", {})
+        bot = bot_controladores.setdefault(player_id, Bot(player_id=player_id, nome=f"BOT-{player_id}"))
+        return bot.jogar_turno(self, partida, player_id)
 
-        compras_realizadas = 0
-        while estado_jogador.get("loja") and len(estado_jogador.get("banco", [])) < 10 and compras_realizadas < 2:
-            opcoes = [
-                (indice, self._obter_campo(carta, "custo", 999))
-                for indice, carta in enumerate(estado_jogador["loja"])
-            ]
-            opcoes.sort(key=lambda item: item[1])
-            indice_escolhido = next((indice for indice, custo in opcoes if custo <= estado_jogador["ouro"]), None)
-            if indice_escolhido is None:
-                break
-            ok, _ = self.comprar_carta_loja(partida, player_id, indice_escolhido)
-            if not ok:
-                break
-            compras_realizadas += 1
-
-        if estado_jogador.get("banco") and estado_jogador.get("ouro", 0) <= 1:
-            self.vender_do_banco(partida, player_id, 0)
-
-        slot_desbloqueavel = next(
-            (
-                slot for slot in estado_jogador["mapa"]
-                if (not slot.get("desbloqueado"))
-                and slot.get("custo_desbloqueio") is not None
-                and self._slot_pode_desbloquear(estado_jogador["mapa"], slot)
-                and estado_jogador["ouro"] >= slot.get("custo_desbloqueio", 0)
-            ),
-            None,
-        )
-        if slot_desbloqueavel is not None:
-            self.desbloquear_slot_mapa(partida, player_id, slot_desbloqueavel.get("slot_id", -1))
-
-        slot_livre = next((slot for slot in estado_jogador["mapa"] if slot.get("desbloqueado") and slot.get("carta") is None), None)
-        if slot_livre is not None and estado_jogador.get("banco"):
-            self.mover_banco_para_mapa(partida, player_id, 0, slot_livre.get("slot_id", 0))
-
-        return True, "ok"
+    def processar_turnos_bots(self, partida):
+        self._inicializar_partida(partida)
+        partida_id = self._chave(partida)
+        houve_acao = False
+        for jogador in getattr(partida, "jogadores", []):
+            if not self._jogador_eh_bot(jogador):
+                continue
+            estado = self._partidas[partida_id]["jogadores"].get(getattr(jogador, "player_id", None))
+            if not estado or estado.get("vida", 0) <= 0:
+                continue
+            ok, _ = self.executar_turno_bot(partida, jogador.player_id)
+            houve_acao = houve_acao or ok
+        return houve_acao
 
     def comprar_carta_loja(self, partida, player_id, indice_loja):
         self._inicializar_partida(partida)
