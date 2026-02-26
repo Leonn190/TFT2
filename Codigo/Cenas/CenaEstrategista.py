@@ -41,6 +41,11 @@ def _obter_jogador_local(partida):
     return partida.jogadores[0] if partida.jogadores else None
 
 
+
+
+def _jogador_visualizacao_eh_local(parametros):
+    return parametros.get("JogadorVisualizadoId", "local-1") == "local-1"
+
 def _obter_jogador_por_id(partida, player_id):
     for jogador in partida.jogadores:
         if jogador.player_id == player_id:
@@ -211,8 +216,11 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 continue
 
             jogador_ativo = _obter_jogador_por_id(partida, Parametros.get("JogadorVisualizadoId", "local-1"))
-            if jogador_ativo is None:
+            jogador_local = _obter_jogador_por_id(partida, "local-1")
+            if jogador_ativo is None or jogador_local is None:
                 continue
+
+            pode_controlar = _jogador_visualizacao_eh_local(Parametros)
 
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 jogador_clicado_id = Parametros["Visualizador"].jogador_clicado(evento.pos, partida.jogadores)
@@ -220,18 +228,19 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     Parametros["JogadorVisualizadoId"] = jogador_clicado_id
                     continue
 
-                carta_banco = Parametros["Banco"].carta_por_posicao(evento.pos, jogador_ativo.banco)
-                slot_mapa = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
+                if pode_controlar:
+                    carta_banco = Parametros["Banco"].carta_por_posicao(evento.pos, jogador_ativo.banco)
+                    slot_mapa = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
 
-                Parametros["DragBanco"] = carta_banco
-                Parametros["DragMapa"] = slot_mapa if slot_mapa and slot_mapa.get("carta") else None
-                Parametros["SlotDestacado"] = None
+                    Parametros["DragBanco"] = carta_banco
+                    Parametros["DragMapa"] = slot_mapa if slot_mapa and slot_mapa.get("carta") else None
+                    Parametros["SlotDestacado"] = None
 
-                if carta_banco is None and slot_mapa is not None and not slot_mapa.get("desbloqueado"):
-                    servidor_estrategista.desbloquear_slot_mapa(partida, jogador_ativo.player_id, slot_mapa.get("slot_id", -1))
+                    if carta_banco is None and slot_mapa is not None and not slot_mapa.get("desbloqueado"):
+                        servidor_estrategista.desbloquear_slot_mapa(partida, jogador_local.player_id, slot_mapa.get("slot_id", -1))
 
             if evento.type == pygame.MOUSEMOTION:
-                if Parametros["DragBanco"] is not None:
+                if pode_controlar and Parametros["DragBanco"] is not None:
                     slot_mapa = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
                     if slot_mapa is not None and slot_mapa.get("desbloqueado"):
                         Parametros["SlotDestacado"] = slot_mapa.get("slot_id")
@@ -239,31 +248,31 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                         Parametros["SlotDestacado"] = None
 
             if evento.type == pygame.MOUSEBUTTONUP and evento.button == 1:
-                if Parametros["DragBanco"] is not None:
+                if pode_controlar and Parametros["DragBanco"] is not None:
                     slot_mapa = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
                     if slot_mapa is not None:
                         servidor_estrategista.mover_banco_para_mapa(
                             partida,
-                            jogador_ativo.player_id,
+                            jogador_local.player_id,
                             Parametros["DragBanco"]["indice"],
                             slot_mapa.get("slot_id", -1),
                         )
                     elif Parametros["Loja"].rect.collidepoint(evento.pos):
-                        servidor_estrategista.vender_do_banco(partida, jogador_ativo.player_id, Parametros["DragBanco"]["indice"])
+                        servidor_estrategista.vender_do_banco(partida, jogador_local.player_id, Parametros["DragBanco"]["indice"])
 
-                if Parametros["DragMapa"] is not None:
+                if pode_controlar and Parametros["DragMapa"] is not None:
                     slot_destino = Parametros["Mapa"].slot_por_posicao(evento.pos, jogador_ativo.mapa)
                     if slot_destino is not None:
                         servidor_estrategista.mover_mapa_para_mapa(
                             partida,
-                            jogador_ativo.player_id,
+                            jogador_local.player_id,
                             Parametros["DragMapa"].get("slot_id", -1),
                             slot_destino.get("slot_id", -1),
                         )
                     elif Parametros["Banco"].rect.collidepoint(evento.pos):
                         servidor_estrategista.mover_mapa_para_banco(
                             partida,
-                            jogador_ativo.player_id,
+                            jogador_local.player_id,
                             Parametros["DragMapa"].get("slot_id", -1),
                         )
 
@@ -271,12 +280,13 @@ def EstrategistaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                 Parametros["DragMapa"] = None
                 Parametros["SlotDestacado"] = None
 
-            acao_loja = Parametros["Loja"].processar_evento(evento, jogador_ativo.loja)
-            if acao_loja:
-                if acao_loja["acao"] == "roletar":
-                    servidor_estrategista.roletar_loja(partida, jogador_ativo.player_id)
-                elif acao_loja["acao"] == "comprar":
-                    servidor_estrategista.comprar_carta_loja(partida, jogador_ativo.player_id, acao_loja["indice"])
+            if pode_controlar:
+                acao_loja = Parametros["Loja"].processar_evento(evento, jogador_ativo.loja)
+                if acao_loja:
+                    if acao_loja["acao"] == "roletar":
+                        servidor_estrategista.roletar_loja(partida, jogador_local.player_id)
+                    elif acao_loja["acao"] == "comprar":
+                        servidor_estrategista.comprar_carta_loja(partida, jogador_local.player_id, acao_loja["indice"])
 
 
         partida = Parametros.get("PartidaAtual")
