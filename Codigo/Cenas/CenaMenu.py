@@ -24,7 +24,7 @@ def _carregar_logo_menu():
         imagem = pygame.image.load(caminho).convert_alpha()
     except Exception:
         return None
-    return pygame.transform.smoothscale(imagem, (220, 220))
+    return pygame.transform.smoothscale(imagem, (320, 320))
 
 
 def _atualizar_discord_presence_menu(INFO, modo):
@@ -36,13 +36,9 @@ def _atualizar_discord_presence_menu(INFO, modo):
 def TelaMenu(TELA, ESTADOS, CONFIG, INFO, Parametros):
     TELA.fill(obter_cor("fundo_menu"))
 
-    fonte_titulo = obter_fonte(70, negrito=False)
-    titulo = fonte_titulo.render("TFT2", True, obter_cor("titulo"))
-    TELA.blit(titulo, titulo.get_rect(center=(960, 220)))
-
     logo = Parametros.get("LogoMenu")
     if logo is not None:
-        TELA.blit(logo, logo.get_rect(center=(960, 320)))
+        TELA.blit(logo, logo.get_rect(center=(960, 260)))
 
     Parametros["BotoesBase"]["Jogar"].desenhar(TELA)
     Parametros["BotoesBase"]["Configuracoes"].desenhar(TELA)
@@ -57,9 +53,9 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
         "TelaBase": TelaMenu,
         "ModoMenu": "base",
         "BotoesBase": {
-            "Jogar": Botao(760, 400, 400, 90, "Jogar"),
-            "Configuracoes": Botao(760, 510, 400, 90, "Configurações"),
-            "Sair": Botao(760, 620, 400, 90, "Sair"),
+            "Jogar": Botao(760, 460, 400, 90, "Jogar"),
+            "Configuracoes": Botao(760, 570, 400, 90, "Configurações"),
+            "Sair": Botao(760, 680, 400, 90, "Sair"),
         },
         "EscolhaSet": InicializaTelaEscolhaSet(CONFIG),
         "Pareamento": InicializaTelaPareamento(),

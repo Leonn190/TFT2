@@ -1,4 +1,5 @@
 import random
+import time
 from copy import deepcopy
 
 from SimuladorAPI.teste import criar_cartas_teste, criar_estoque_por_raridade
@@ -7,6 +8,8 @@ from SimuladorAPI.ControladorGeral import ControladorGeral
 
 
 class Ativador:
+    COOLDOWN_ACAO_BOT_MS = 5000
+
     def __init__(self):
         self._partidas = {}
         self.ping_ms = 35
@@ -71,6 +74,7 @@ class Ativador:
             "sinergias": [],
             "slots_adquiridos": 1,
             "chances_loja": self._obter_chances_loja_por_slots(partida_id, 1),
+            "cooldowns_acoes": {},
         }
 
     @staticmethod
@@ -282,9 +286,47 @@ class Ativador:
             houve_acao = houve_acao or ok
         return houve_acao
 
+
+    @staticmethod
+    def _tempo_atual_real_ms():
+        return int(time.monotonic() * 1000)
+
+    @staticmethod
+    def _nome_acao_em_cooldown(nome_acao):
+        mapa = {
+            "comprar_personagem": "comprar_personagem",
+            "roletar": "roletar",
+            "vender_personagem": "vender_personagem",
+            "colocar_personagem_mapa": "colocar_personagem_mapa",
+            "tirar_personagem_mapa": "tirar_personagem_mapa",
+            "trocar_personagem_mapa": "trocar_personagem_mapa",
+        }
+        return mapa.get(nome_acao, nome_acao)
+
+    def _jogador_eh_bot_por_id(self, partida, player_id):
+        jogador = next((j for j in getattr(partida, "jogadores", []) if getattr(j, "player_id", None) == player_id), None)
+        return self._jogador_eh_bot(jogador)
+
+    def _validar_cooldown_acao_bot(self, partida, player_id, estado_jogador, nome_acao):
+        if not self._jogador_eh_bot_por_id(partida, player_id):
+            return True, "ok"
+
+        chave_acao = self._nome_acao_em_cooldown(nome_acao)
+        cooldowns = estado_jogador.setdefault("cooldowns_acoes", {})
+        agora_ms = self._tempo_atual_real_ms()
+        disponivel_em = int(cooldowns.get(chave_acao, 0))
+        if agora_ms < disponivel_em:
+            return False, "acao_em_cooldown"
+
+        cooldowns[chave_acao] = agora_ms + self.COOLDOWN_ACAO_BOT_MS
+        return True, "ok"
+
     def comprar_carta_loja(self, partida, player_id, indice_loja):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "comprar_personagem")
+        if not ok_cooldown:
+            return False, motivo_cooldown
         if indice_loja < 0 or indice_loja >= len(estado_jogador["loja"]):
             return False, "indice_invalido"
         carta = estado_jogador["loja"][indice_loja]
@@ -304,6 +346,9 @@ class Ativador:
         self._inicializar_partida(partida)
         partida_id = self._chave(partida)
         estado_jogador = self._partidas[partida_id]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "roletar")
+        if not ok_cooldown:
+            return False, motivo_cooldown
         if estado_jogador["ouro"] < custo:
             return False, "ouro_insuficiente"
 
@@ -359,6 +404,9 @@ class Ativador:
         self._inicializar_partida(partida)
         partida_id = self._chave(partida)
         estado_jogador = self._partidas[partida_id]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "vender_personagem")
+        if not ok_cooldown:
+            return False, motivo_cooldown
         if indice_banco < 0 or indice_banco >= len(estado_jogador["banco"]):
             return False, "indice_invalido"
 
@@ -498,6 +546,9 @@ class Ativador:
     def mover_banco_para_mapa(self, partida, player_id, indice_banco, slot_id):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "colocar_personagem_mapa")
+        if not ok_cooldown:
+            return False, motivo_cooldown
 
         if indice_banco < 0 or indice_banco >= len(estado_jogador["banco"]):
             return False, "indice_invalido"
@@ -527,6 +578,9 @@ class Ativador:
     def mover_mapa_para_mapa(self, partida, player_id, slot_origem_id, slot_destino_id):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "trocar_personagem_mapa")
+        if not ok_cooldown:
+            return False, motivo_cooldown
 
         slot_origem = self._obter_slot_por_id(estado_jogador["mapa"], slot_origem_id)
         slot_destino = self._obter_slot_por_id(estado_jogador["mapa"], slot_destino_id)
@@ -553,6 +607,9 @@ class Ativador:
     def mover_mapa_para_banco(self, partida, player_id, slot_id):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "tirar_personagem_mapa")
+        if not ok_cooldown:
+            return False, motivo_cooldown
 
         slot = self._obter_slot_por_id(estado_jogador["mapa"], slot_id)
         if slot is None:
