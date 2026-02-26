@@ -110,6 +110,14 @@ class Ativador:
         estado_jogador["chances_loja"] = self._obter_chances_loja_por_slots(partida_id, slots_adquiridos)
 
     @staticmethod
+    def _jogador_eh_bot(jogador):
+        if jogador is None:
+            return False
+        if isinstance(jogador, dict):
+            return bool(jogador.get("is_bot")) or jogador.get("categoria") == "bot"
+        return bool(getattr(jogador, "is_bot", False)) or getattr(jogador, "categoria", None) == "bot"
+
+    @staticmethod
     def _raridade_carta(carta):
         return str(Ativador._obter_campo(carta, "raridade", "comum")).strip().lower()
 
@@ -220,6 +228,53 @@ class Ativador:
         partida.seed_combate = estado.get("seed_combate", self._seed_padrao)
         partida.log_eventos = deepcopy(estado.get("log_eventos", []))
         return partida
+
+    def executar_turno_bot(self, partida, player_id):
+        self._inicializar_partida(partida)
+        partida_id = self._chave(partida)
+        estado_jogador = self._partidas[partida_id]["jogadores"].get(player_id)
+        if estado_jogador is None:
+            return False, "jogador_inexistente"
+
+        if not estado_jogador.get("loja"):
+            self.roletar_loja(partida, player_id, custo=0)
+
+        compras_realizadas = 0
+        while estado_jogador.get("loja") and len(estado_jogador.get("banco", [])) < 10 and compras_realizadas < 2:
+            opcoes = [
+                (indice, self._obter_campo(carta, "custo", 999))
+                for indice, carta in enumerate(estado_jogador["loja"])
+            ]
+            opcoes.sort(key=lambda item: item[1])
+            indice_escolhido = next((indice for indice, custo in opcoes if custo <= estado_jogador["ouro"]), None)
+            if indice_escolhido is None:
+                break
+            ok, _ = self.comprar_carta_loja(partida, player_id, indice_escolhido)
+            if not ok:
+                break
+            compras_realizadas += 1
+
+        if estado_jogador.get("banco") and estado_jogador.get("ouro", 0) <= 1:
+            self.vender_do_banco(partida, player_id, 0)
+
+        slot_desbloqueavel = next(
+            (
+                slot for slot in estado_jogador["mapa"]
+                if (not slot.get("desbloqueado"))
+                and slot.get("custo_desbloqueio") is not None
+                and self._slot_pode_desbloquear(estado_jogador["mapa"], slot)
+                and estado_jogador["ouro"] >= slot.get("custo_desbloqueio", 0)
+            ),
+            None,
+        )
+        if slot_desbloqueavel is not None:
+            self.desbloquear_slot_mapa(partida, player_id, slot_desbloqueavel.get("slot_id", -1))
+
+        slot_livre = next((slot for slot in estado_jogador["mapa"] if slot.get("desbloqueado") and slot.get("carta") is None), None)
+        if slot_livre is not None and estado_jogador.get("banco"):
+            self.mover_banco_para_mapa(partida, player_id, 0, slot_livre.get("slot_id", 0))
+
+        return True, "ok"
 
     def comprar_carta_loja(self, partida, player_id, indice_loja):
         self._inicializar_partida(partida)
@@ -535,6 +590,11 @@ class Ativador:
             "fim_batalha",
             {"total": estado_jogador["batalhas_finalizadas"], "vida": estado_jogador["vida"]},
         )
+
+        jogador_partida = next((j for j in partida.jogadores if getattr(j, "player_id", None) == player_id), None)
+        if self._jogador_eh_bot(jogador_partida):
+            self.executar_turno_bot(partida, player_id)
+
         return True, "ok"
 
 ativador_global = Ativador()
