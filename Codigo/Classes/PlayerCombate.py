@@ -23,8 +23,8 @@ class PlayerCombate:
                 cartas.append(carta)
         return cartas
 
-    def montar_time_linha(self, indice_linha, equipe, arena_rect):
+    def montar_time_linha(self, indice_linha, equipe, arena):
         personagens = []
         for indice, carta in enumerate(self._cartas_por_linha(indice_linha)):
-            personagens.append(PersonagemCombate(carta=carta, equipe=equipe, arena_rect=arena_rect, indice=indice, rng=self.rng))
+            personagens.append(PersonagemCombate(carta=carta, equipe=equipe, arena=arena, indice=indice, rng=self.rng))
         return personagens

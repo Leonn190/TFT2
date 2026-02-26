@@ -7,11 +7,13 @@ from Codigo.Modulos.ConstrutorVisual import construir_avatar_circular
 
 
 class PersonagemCombate:
-    def __init__(self, carta, equipe, arena_rect, indice=0, rng=None):
+    def __init__(self, carta, equipe, arena, indice=0, rng=None):
         self.carta = carta or {}
         self.rng = rng
         self.equipe = equipe
         self.nome = str(self.carta.get("nome") or "Brawler")
+        self.arena_config = arena if hasattr(arena, "rect") else None
+        self.arena_rect = arena.rect if self.arena_config is not None else arena
 
         self.vida_max = self._int_campo("vida", "Vida", padrao=100)
         self.vida = float(self.vida_max)
@@ -21,9 +23,13 @@ class PersonagemCombate:
         self.vel = self._int_campo("vel", "Vel", padrao=30)
         self.velocidade_base = max(90.0, float(self.vel) * 2.2)
         self.massa = max(8.0, self.vida_max / 40.0)
-        self.raio = max(18, min(42, int(14 + self.massa * 1.5)))
+        raio_por_metro = getattr(self.arena_config, "raio_personagem_px", None)
+        if raio_por_metro is not None:
+            self.raio = max(8, int(raio_por_metro))
+        else:
+            self.raio = max(18, min(42, int(14 + self.massa * 1.5)))
 
-        self.x, self.y = self._posicao_inicial(arena_rect, indice)
+        self.x, self.y = self._posicao_inicial(self.arena_rect, indice)
         self.vx, self.vy = self._velocidade_inicial()
 
         self.imagem = self._carregar_imagem()

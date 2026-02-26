@@ -80,7 +80,8 @@ def InicializaBatalha(TELA, ESTADOS, CONFIG, INFO):
         if inimigo is not None:
             seed_base = int(getattr(partida, "seed_combate", 1337))
             seed = seed_base + INFO_INDICE_BATALHA_ATUAL["indice"]
-            simulador = SimuladorBatalha(jogador_local, inimigo, seed=seed)
+            numero_batalha = INFO_INDICE_BATALHA_ATUAL["indice"] + 1
+            simulador = SimuladorBatalha(jogador_local, inimigo, seed=seed, numero_batalha=numero_batalha)
 
     return {
         "TelaAtiva": TelaBatalha,
