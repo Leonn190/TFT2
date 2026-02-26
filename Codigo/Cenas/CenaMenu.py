@@ -18,6 +18,14 @@ from Codigo.Telas.TelaPareamento import InicializaTelaPareamento, TelaPareamento
 
 servico_pareamento = ServidorPareamento()
 
+def _carregar_logo_menu():
+    caminho = "Recursos/Visual/Icones/TFT2_Icone.png"
+    try:
+        imagem = pygame.image.load(caminho).convert_alpha()
+    except Exception:
+        return None
+    return pygame.transform.smoothscale(imagem, (220, 220))
+
 
 def _atualizar_discord_presence_menu(INFO, modo):
     discord_presence = INFO.get("DiscordPresence")
@@ -31,6 +39,10 @@ def TelaMenu(TELA, ESTADOS, CONFIG, INFO, Parametros):
     fonte_titulo = obter_fonte(70, negrito=False)
     titulo = fonte_titulo.render("TFT2", True, obter_cor("titulo"))
     TELA.blit(titulo, titulo.get_rect(center=(960, 220)))
+
+    logo = Parametros.get("LogoMenu")
+    if logo is not None:
+        TELA.blit(logo, logo.get_rect(center=(960, 320)))
 
     Parametros["BotoesBase"]["Jogar"].desenhar(TELA)
     Parametros["BotoesBase"]["Configuracoes"].desenhar(TELA)
@@ -56,6 +68,7 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
         "SetsSelecionados": [],
         "ResultadoPareamento": {},
         "Ticket": None,
+        "LogoMenu": _carregar_logo_menu(),
     }
 
 

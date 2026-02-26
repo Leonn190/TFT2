@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from SimuladorAPI.teste import criar_cartas_teste, criar_estoque_por_raridade
 from SimuladorAPI.Bot import Bot
+from SimuladorAPI.ControladorGeral import ControladorGeral
 
 
 class Ativador:
@@ -11,6 +12,7 @@ class Ativador:
         self.ping_ms = 35
         self._proximo_uid_carta = 1
         self._seed_padrao = 1337
+        self._controlador_geral = ControladorGeral(intervalo_acao_bot_s=5)
 
     def definir_ping(self, ping_ms):
         self.ping_ms = max(0, int(ping_ms))
@@ -39,6 +41,9 @@ class Ativador:
             "log_eventos": [],
             "tick_evento": 0,
             "bot_controladores": {},
+            "bot_proximo_tick": {},
+            "tempo_atual_ms": 0,
+            "historico_batalhas": [],
         }
 
         for jogador in partida.jogadores:
@@ -231,6 +236,15 @@ class Ativador:
         partida.estoque_compartilhado = deepcopy(estado["estoque"])
         partida.seed_combate = estado.get("seed_combate", self._seed_padrao)
         partida.log_eventos = deepcopy(estado.get("log_eventos", []))
+
+        ids_jogadores = [getattr(j, "player_id", None) for j in getattr(partida, "jogadores", []) if getattr(j, "player_id", None)]
+        batalhas = self._controlador_geral.simular_e_aplicar_batalhas(estado, ids_jogadores)
+        for batalha in batalhas:
+            self._registrar_evento(partida_id, batalha.get("vencedor_id"), "resultado_batalha", batalha)
+
+        for jogador in partida.jogadores:
+            dados = estado["jogadores"].get(jogador.player_id, {})
+            jogador.vida = dados.get("vida", jogador.vida)
         return partida
 
     def executar_turno_bot(self, partida, player_id):
@@ -240,14 +254,24 @@ class Ativador:
         if estado_jogador is None:
             return False, "jogador_inexistente"
 
-        bot_controladores = self._partidas[partida_id].setdefault("bot_controladores", {})
+        estado_partida = self._partidas[partida_id]
+        if not self._controlador_geral.pode_bot_jogar(estado_partida, player_id):
+            return False, "aguardando_intervalo"
+
+        bot_controladores = estado_partida.setdefault("bot_controladores", {})
         bot = bot_controladores.setdefault(player_id, Bot(player_id=player_id, nome=f"BOT-{player_id}"))
-        return bot.jogar_turno(self, partida, player_id)
+        ok, motivo = bot.jogar_turno(self, partida, player_id)
+        if ok:
+            self._controlador_geral.registrar_acao_bot(estado_partida, player_id)
+        return ok, motivo
 
     def processar_turnos_bots(self, partida):
         self._inicializar_partida(partida)
         partida_id = self._chave(partida)
         houve_acao = False
+        estado_partida = self._partidas[partida_id]
+        self._controlador_geral.avancar_tempo(estado_partida, 1000)
+
         for jogador in getattr(partida, "jogadores", []):
             if not self._jogador_eh_bot(jogador):
                 continue
@@ -550,6 +574,9 @@ class Ativador:
 
     @staticmethod
     def _vida_jogador_partida(partida, player_id):
+        estado_partida = self._partidas[partida_id]
+        self._controlador_geral.avancar_tempo(estado_partida, 1000)
+
         for jogador in getattr(partida, "jogadores", []):
             if getattr(jogador, "player_id", None) == player_id:
                 return getattr(jogador, "vida", None)
