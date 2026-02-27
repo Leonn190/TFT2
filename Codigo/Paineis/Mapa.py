@@ -6,7 +6,7 @@ from Codigo.Modulos.GeradoresVisuais import obter_fonte
 
 class Mapa:
     LINHAS = 3
-    COLUNAS = 5
+    COLUNAS = 4
 
     def __init__(self, largura_tela=1920, altura_tela=1080):
         self.rect = pygame.Rect(int(largura_tela * 0.20), 120, int(largura_tela * 0.58), int(altura_tela * 0.56))

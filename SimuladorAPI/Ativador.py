@@ -8,14 +8,14 @@ from SimuladorAPI.ControladorGeral import ControladorGeral
 
 
 class Ativador:
-    COOLDOWN_ACAO_BOT_MS = 5000
+    COOLDOWN_ACAO_BOT_MS = 6000
 
     def __init__(self):
         self._partidas = {}
         self.ping_ms = 35
         self._proximo_uid_carta = 1
         self._seed_padrao = 1337
-        self._controlador_geral = ControladorGeral(intervalo_acao_bot_s=5)
+        self._controlador_geral = ControladorGeral(intervalo_acao_bot_s=6)
 
     def definir_ping(self, ping_ms):
         self.ping_ms = max(0, int(ping_ms))
@@ -67,7 +67,7 @@ class Ativador:
             "loja": [],
             "mapa": [
                 {"slot_id": slot_id, "desbloqueado": slot_id == 0, "custo_desbloqueio": 0 if slot_id == 0 else None, "carta": None}
-                for slot_id in range(15)
+                for slot_id in range(12)
             ],
             "batalhas_finalizadas": 0,
             "selecao": [],
@@ -79,13 +79,13 @@ class Ativador:
 
     @staticmethod
     def _custo_coluna_mapa(coluna):
-        custos = {1: 10, 2: 15, 3: 20, 4: 25}
+        custos = {1: 10, 2: 15, 3: 20}
         return custos.get(coluna)
 
     def _configurar_slots_pos_batalha(self, estado_jogador):
         for slot in estado_jogador["mapa"]:
             slot_id = slot.get("slot_id", 0)
-            coluna = slot_id % 5
+            coluna = slot_id % 4
             if coluna == 0:
                 slot["desbloqueado"] = True
                 slot["custo_desbloqueio"] = 0
@@ -104,12 +104,21 @@ class Ativador:
         tabela = self._obter_regra_partida(partida_id, "chances_loja_por_slots", {})
         return tabela if isinstance(tabela, dict) and tabela else {
             1: {"comum": 80, "incomum": 15, "raro": 5, "epico": 0, "lendario": 0, "mitico": 0},
-            15: {"comum": 8, "incomum": 9, "raro": 10, "epico": 16, "lendario": 32, "mitico": 25},
+            3: {"comum": 60, "incomum": 30, "raro": 9, "epico": 1, "lendario": 0, "mitico": 0},
+            4: {"comum": 40, "incomum": 45, "raro": 12, "epico": 3, "lendario": 0, "mitico": 0},
+            5: {"comum": 30, "incomum": 50, "raro": 15, "epico": 5, "lendario": 0, "mitico": 0},
+            6: {"comum": 25, "incomum": 40, "raro": 25, "epico": 8, "lendario": 2, "mitico": 0},
+            7: {"comum": 22, "incomum": 28, "raro": 35, "epico": 12, "lendario": 3, "mitico": 0},
+            8: {"comum": 20, "incomum": 25, "raro": 30, "epico": 18, "lendario": 5, "mitico": 2},
+            9: {"comum": 15, "incomum": 18, "raro": 26, "epico": 25, "lendario": 10, "mitico": 6},
+            10: {"comum": 12, "incomum": 15, "raro": 20, "epico": 25, "lendario": 20, "mitico": 8},
+            11: {"comum": 10, "incomum": 12, "raro": 16, "epico": 22, "lendario": 25, "mitico": 15},
+            12: {"comum": 8, "incomum": 10, "raro": 12, "epico": 20, "lendario": 30, "mitico": 20},
         }
 
     def _obter_chances_loja_por_slots(self, partida_id, slots_adquiridos):
         tabela_chances = self._obter_tabela_chances_loja(partida_id)
-        slots_normalizados = max(1, min(15, int(slots_adquiridos)))
+        slots_normalizados = max(1, min(12, int(slots_adquiridos)))
         if slots_normalizados == 2:
             slots_normalizados = 3
         chave_maxima = max(tabela_chances.keys())
@@ -288,15 +297,8 @@ class Ativador:
 
     @staticmethod
     def _nome_acao_em_cooldown(nome_acao):
-        mapa = {
-            "comprar_personagem": "comprar_personagem",
-            "roletar": "roletar",
-            "vender_personagem": "vender_personagem",
-            "colocar_personagem_mapa": "colocar_personagem_mapa",
-            "tirar_personagem_mapa": "tirar_personagem_mapa",
-            "trocar_personagem_mapa": "trocar_personagem_mapa",
-        }
-        return mapa.get(nome_acao, nome_acao)
+        del nome_acao
+        return "jogada"
 
     def _jogador_eh_bot_por_id(self, partida, player_id):
         jogador = next((j for j in getattr(partida, "jogadores", []) if getattr(j, "player_id", None) == player_id), None)
@@ -357,7 +359,7 @@ class Ativador:
 
     def _slot_pode_desbloquear(self, mapa, slot):
         slot_id = slot.get("slot_id", -1)
-        coluna = slot_id % 5
+        coluna = slot_id % 4
         if coluna <= 0:
             return False
         slot_anterior = self._obter_slot_por_id(mapa, slot_id - 1)
@@ -380,13 +382,16 @@ class Ativador:
         slot["desbloqueado"] = True
         proximo_slot = self._obter_slot_por_id(estado_jogador["mapa"], slot.get("slot_id", -1) + 1)
         if proximo_slot is not None and not proximo_slot.get("desbloqueado") and proximo_slot.get("custo_desbloqueio") is None:
-            proximo_slot["custo_desbloqueio"] = self._custo_coluna_mapa(proximo_slot.get("slot_id", 0) % 5)
+            proximo_slot["custo_desbloqueio"] = self._custo_coluna_mapa(proximo_slot.get("slot_id", 0) % 4)
 
         return True, "ok"
 
     def desbloquear_slot_mapa(self, partida, player_id, slot_id):
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "desbloquear_slot_mapa")
+        if not ok_cooldown:
+            return False, motivo_cooldown
         slot = self._obter_slot_por_id(estado_jogador["mapa"], slot_id)
         if slot is None:
             return False, "slot_inexistente"
@@ -449,8 +454,8 @@ class Ativador:
                 continue
 
             slot_id = slot.get("slot_id", -1)
-            linha = slot_id // 5
-            coluna = slot_id % 5
+            linha = slot_id // 4
+            coluna = slot_id % 4
             sinergias_carta = cls._sinergias_carta(carta)
             if not sinergias_carta:
                 continue
@@ -458,9 +463,9 @@ class Ativador:
             for dl, dc in ((0, 1), (1, 0)):
                 vizinho_linha = linha + dl
                 vizinho_coluna = coluna + dc
-                if vizinho_linha > 2 or vizinho_coluna > 4:
+                if vizinho_linha > 2 or vizinho_coluna > 3:
                     continue
-                vizinho_id = vizinho_linha * 5 + vizinho_coluna
+                vizinho_id = vizinho_linha * 4 + vizinho_coluna
                 slot_vizinho = slot_por_id.get(vizinho_id)
                 carta_vizinha = slot_vizinho.get("carta") if slot_vizinho else None
                 if carta_vizinha is None:
@@ -511,6 +516,9 @@ class Ativador:
         del alvo_grupo_id
         self._inicializar_partida(partida)
         estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "alocar_sinergia")
+        if not ok_cooldown:
+            return False, motivo_cooldown
         if not card_uids or len(card_uids) != 1:
             return False, "sem_cartas"
 
