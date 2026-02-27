@@ -14,7 +14,7 @@ class PlayerCombate:
     def _cartas_por_linha(self, indice_linha):
         cartas = []
         for slot in self.jogador_base.mapa:
-            if slot.get("slot_id", -1) // 5 != indice_linha:
+            if slot.get("slot_id", -1) // 4 != indice_linha:
                 continue
             if not slot.get("desbloqueado"):
                 continue
