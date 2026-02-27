@@ -23,11 +23,12 @@ class PersonagemCombate:
         self.vel = self._int_campo("vel", "Vel", padrao=30)
         self.velocidade_base = max(90.0, float(self.vel) * 2.2)
         self.massa = max(8.0, self.vida_max / 40.0)
+        escala_tamanho = 0.9
         raio_por_metro = getattr(self.arena_config, "raio_personagem_px", None)
         if raio_por_metro is not None:
-            self.raio = max(8, int(raio_por_metro))
+            self.raio = max(8, int(raio_por_metro * escala_tamanho))
         else:
-            self.raio = max(18, min(42, int(14 + self.massa * 1.5)))
+            self.raio = max(16, min(38, int((14 + self.massa * 1.5) * escala_tamanho)))
 
         self.x, self.y = self._posicao_inicial(self.arena_rect, indice)
         self.vx, self.vy = self._velocidade_inicial()

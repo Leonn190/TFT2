@@ -44,9 +44,6 @@ REGRAS_PARTIDA_PADRAO = {
         10: {"comum": 16, "incomum": 20, "raro": 25, "epico": 25, "lendario": 10, "mitico": 4},
         11: {"comum": 15, "incomum": 18, "raro": 21, "epico": 26, "lendario": 15, "mitico": 5},
         12: {"comum": 13, "incomum": 15, "raro": 18, "epico": 24, "lendario": 20, "mitico": 10},
-        13: {"comum": 12, "incomum": 13, "raro": 15, "epico": 20, "lendario": 25, "mitico": 15},
-        14: {"comum": 10, "incomum": 10, "raro": 12, "epico": 18, "lendario": 30, "mitico": 20},
-        15: {"comum": 8, "incomum": 9, "raro": 10, "epico": 16, "lendario": 32, "mitico": 25},
     },
 }
 

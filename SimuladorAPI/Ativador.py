@@ -9,6 +9,9 @@ from SimuladorAPI.ControladorGeral import ControladorGeral
 
 class Ativador:
     COOLDOWN_ACAO_BOT_MS = 5000
+    LINHAS_MAPA = 3
+    COLUNAS_MAPA = 4
+    TOTAL_SLOTS_MAPA = LINHAS_MAPA * COLUNAS_MAPA
 
     def __init__(self):
         self._partidas = {}
@@ -67,7 +70,7 @@ class Ativador:
             "loja": [],
             "mapa": [
                 {"slot_id": slot_id, "desbloqueado": slot_id == 0, "custo_desbloqueio": 0 if slot_id == 0 else None, "carta": None}
-                for slot_id in range(15)
+                for slot_id in range(self.TOTAL_SLOTS_MAPA)
             ],
             "batalhas_finalizadas": 0,
             "selecao": [],
@@ -79,13 +82,13 @@ class Ativador:
 
     @staticmethod
     def _custo_coluna_mapa(coluna):
-        custos = {1: 10, 2: 15, 3: 20, 4: 25}
+        custos = {1: 10, 2: 15, 3: 20}
         return custos.get(coluna)
 
     def _configurar_slots_pos_batalha(self, estado_jogador):
         for slot in estado_jogador["mapa"]:
             slot_id = slot.get("slot_id", 0)
-            coluna = slot_id % 5
+            coluna = slot_id % self.COLUNAS_MAPA
             if coluna == 0:
                 slot["desbloqueado"] = True
                 slot["custo_desbloqueio"] = 0
@@ -104,12 +107,12 @@ class Ativador:
         tabela = self._obter_regra_partida(partida_id, "chances_loja_por_slots", {})
         return tabela if isinstance(tabela, dict) and tabela else {
             1: {"comum": 80, "incomum": 15, "raro": 5, "epico": 0, "lendario": 0, "mitico": 0},
-            15: {"comum": 8, "incomum": 9, "raro": 10, "epico": 16, "lendario": 32, "mitico": 25},
+            12: {"comum": 13, "incomum": 15, "raro": 18, "epico": 24, "lendario": 20, "mitico": 10},
         }
 
     def _obter_chances_loja_por_slots(self, partida_id, slots_adquiridos):
         tabela_chances = self._obter_tabela_chances_loja(partida_id)
-        slots_normalizados = max(1, min(15, int(slots_adquiridos)))
+        slots_normalizados = max(1, min(self.TOTAL_SLOTS_MAPA, int(slots_adquiridos)))
         if slots_normalizados == 2:
             slots_normalizados = 3
         chave_maxima = max(tabela_chances.keys())
@@ -357,7 +360,7 @@ class Ativador:
 
     def _slot_pode_desbloquear(self, mapa, slot):
         slot_id = slot.get("slot_id", -1)
-        coluna = slot_id % 5
+        coluna = slot_id % self.COLUNAS_MAPA
         if coluna <= 0:
             return False
         slot_anterior = self._obter_slot_por_id(mapa, slot_id - 1)
@@ -380,7 +383,7 @@ class Ativador:
         slot["desbloqueado"] = True
         proximo_slot = self._obter_slot_por_id(estado_jogador["mapa"], slot.get("slot_id", -1) + 1)
         if proximo_slot is not None and not proximo_slot.get("desbloqueado") and proximo_slot.get("custo_desbloqueio") is None:
-            proximo_slot["custo_desbloqueio"] = self._custo_coluna_mapa(proximo_slot.get("slot_id", 0) % 5)
+            proximo_slot["custo_desbloqueio"] = self._custo_coluna_mapa(proximo_slot.get("slot_id", 0) % self.COLUNAS_MAPA)
 
         return True, "ok"
 
@@ -392,6 +395,7 @@ class Ativador:
             return False, "slot_inexistente"
         ok, motivo = self._desbloquear_slot(estado_jogador, slot)
         if ok:
+            self._atualizar_progresso_jogador(self._chave(partida), estado_jogador)
             self._registrar_evento(self._chave(partida), player_id, "desbloquear_slot", {"slot_id": slot_id})
         return ok, motivo
 
@@ -449,8 +453,8 @@ class Ativador:
                 continue
 
             slot_id = slot.get("slot_id", -1)
-            linha = slot_id // 5
-            coluna = slot_id % 5
+            linha = slot_id // cls.COLUNAS_MAPA
+            coluna = slot_id % cls.COLUNAS_MAPA
             sinergias_carta = cls._sinergias_carta(carta)
             if not sinergias_carta:
                 continue
@@ -458,9 +462,9 @@ class Ativador:
             for dl, dc in ((0, 1), (1, 0)):
                 vizinho_linha = linha + dl
                 vizinho_coluna = coluna + dc
-                if vizinho_linha > 2 or vizinho_coluna > 4:
+                if vizinho_linha >= cls.LINHAS_MAPA or vizinho_coluna >= cls.COLUNAS_MAPA:
                     continue
-                vizinho_id = vizinho_linha * 5 + vizinho_coluna
+                vizinho_id = vizinho_linha * cls.COLUNAS_MAPA + vizinho_coluna
                 slot_vizinho = slot_por_id.get(vizinho_id)
                 carta_vizinha = slot_vizinho.get("carta") if slot_vizinho else None
                 if carta_vizinha is None:
@@ -556,6 +560,7 @@ class Ativador:
             ok, motivo = self._desbloquear_slot(estado_jogador, slot)
             if not ok:
                 return False, motivo
+            self._atualizar_progresso_jogador(self._chave(partida), estado_jogador)
 
         carta_banco = estado_jogador["banco"][indice_banco]
         carta_slot = slot.get("carta")
@@ -586,6 +591,7 @@ class Ativador:
             ok, motivo = self._desbloquear_slot(estado_jogador, slot_destino)
             if not ok:
                 return False, motivo
+            self._atualizar_progresso_jogador(self._chave(partida), estado_jogador)
 
         carta_origem = slot_origem.get("carta")
         if carta_origem is None:
