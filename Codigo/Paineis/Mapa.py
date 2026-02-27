@@ -9,7 +9,7 @@ class Mapa:
     COLUNAS = 4
 
     def __init__(self, largura_tela=1920, altura_tela=1080):
-        self.rect = pygame.Rect(int(largura_tela * 0.20), 120, int(largura_tela * 0.58), int(altura_tela * 0.56))
+        self.rect = pygame.Rect(int(largura_tela * 0.22), 120, int(largura_tela * 0.54), int(altura_tela * 0.56))
         self.fonte_titulo = obter_fonte(30, negrito=True)
         self.fonte_carta = obter_fonte(19)
 

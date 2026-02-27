@@ -17,10 +17,10 @@ class ArenaBatalha:
     @staticmethod
     def _dimensoes_por_batalha(numero_batalha):
         if numero_batalha <= 1:
-            return 10.0, 5.0
+            return 10.0, 6.0
         if numero_batalha <= 4:
-            return 12.0, 6.0
-        return 14.0, 7.0
+            return 12.0, 7.0
+        return 14.0, 8.0
 
     @property
     def px_por_metro(self):
