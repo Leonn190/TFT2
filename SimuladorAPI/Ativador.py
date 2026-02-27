@@ -8,7 +8,7 @@ from SimuladorAPI.ControladorGeral import ControladorGeral
 
 
 class Ativador:
-    COOLDOWN_ACAO_BOT_MS = 5000
+    COOLDOWN_ACAO_BOT_MS = 6000
     LINHAS_MAPA = 3
     COLUNAS_MAPA = 4
     TOTAL_SLOTS_MAPA = LINHAS_MAPA * COLUNAS_MAPA
@@ -18,7 +18,7 @@ class Ativador:
         self.ping_ms = 35
         self._proximo_uid_carta = 1
         self._seed_padrao = 1337
-        self._controlador_geral = ControladorGeral(intervalo_acao_bot_s=5)
+        self._controlador_geral = ControladorGeral(intervalo_acao_bot_s=6)
 
     def definir_ping(self, ping_ms):
         self.ping_ms = max(0, int(ping_ms))
@@ -107,7 +107,16 @@ class Ativador:
         tabela = self._obter_regra_partida(partida_id, "chances_loja_por_slots", {})
         return tabela if isinstance(tabela, dict) and tabela else {
             1: {"comum": 80, "incomum": 15, "raro": 5, "epico": 0, "lendario": 0, "mitico": 0},
-            12: {"comum": 13, "incomum": 15, "raro": 18, "epico": 24, "lendario": 20, "mitico": 10},
+            3: {"comum": 60, "incomum": 30, "raro": 9, "epico": 1, "lendario": 0, "mitico": 0},
+            4: {"comum": 40, "incomum": 45, "raro": 12, "epico": 3, "lendario": 0, "mitico": 0},
+            5: {"comum": 30, "incomum": 50, "raro": 15, "epico": 5, "lendario": 0, "mitico": 0},
+            6: {"comum": 25, "incomum": 40, "raro": 25, "epico": 8, "lendario": 2, "mitico": 0},
+            7: {"comum": 22, "incomum": 28, "raro": 35, "epico": 12, "lendario": 3, "mitico": 0},
+            8: {"comum": 20, "incomum": 25, "raro": 30, "epico": 18, "lendario": 5, "mitico": 2},
+            9: {"comum": 15, "incomum": 18, "raro": 26, "epico": 25, "lendario": 10, "mitico": 6},
+            10: {"comum": 12, "incomum": 15, "raro": 20, "epico": 25, "lendario": 20, "mitico": 8},
+            11: {"comum": 10, "incomum": 12, "raro": 16, "epico": 22, "lendario": 25, "mitico": 15},
+            12: {"comum": 8, "incomum": 10, "raro": 12, "epico": 20, "lendario": 30, "mitico": 20},
         }
 
     def _obter_chances_loja_por_slots(self, partida_id, slots_adquiridos):
@@ -291,15 +300,8 @@ class Ativador:
 
     @staticmethod
     def _nome_acao_em_cooldown(nome_acao):
-        mapa = {
-            "comprar_personagem": "comprar_personagem",
-            "roletar": "roletar",
-            "vender_personagem": "vender_personagem",
-            "colocar_personagem_mapa": "colocar_personagem_mapa",
-            "tirar_personagem_mapa": "tirar_personagem_mapa",
-            "trocar_personagem_mapa": "trocar_personagem_mapa",
-        }
-        return mapa.get(nome_acao, nome_acao)
+        del nome_acao
+        return "jogada"
 
     def _jogador_eh_bot_por_id(self, partida, player_id):
         jogador = next((j for j in getattr(partida, "jogadores", []) if getattr(j, "player_id", None) == player_id), None)
