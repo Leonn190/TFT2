@@ -38,6 +38,27 @@ class SimuladorBatalha:
         self.time_inimigo = []
         self._iniciar_round(0)
 
+    def ajustar_zoom(self, delta_zoom):
+        novo_zoom = max(0.45, min(2.2, self.arena_config.zoom + float(delta_zoom)))
+        if abs(novo_zoom - self.arena_config.zoom) < 0.0001:
+            return
+
+        arena_antiga = self.arena.copy()
+        self.arena_config.zoom = novo_zoom
+        self.arena = self.arena_config.rect
+        self._reposicionar_personagens_por_zoom(arena_antiga, self.arena)
+
+    def _reposicionar_personagens_por_zoom(self, arena_antiga, arena_nova):
+        largura_antiga = max(1, arena_antiga.width)
+        altura_antiga = max(1, arena_antiga.height)
+
+        for personagem in self.time_aliado + self.time_inimigo:
+            x_rel = (personagem.x - arena_antiga.left) / largura_antiga
+            y_rel = (personagem.y - arena_antiga.top) / altura_antiga
+            personagem.x = arena_nova.left + x_rel * arena_nova.width
+            personagem.y = arena_nova.top + y_rel * arena_nova.height
+            personagem.raio = max(8, int(round(self.arena_config.raio_personagem_px * 0.9)))
+
     def _iniciar_round(self, indice):
         self.round_atual = indice
         self.time_aliado = self.aliado_base.montar_time_linha(indice, "aliado", self.arena_config)

@@ -120,6 +120,16 @@ def BatalhaLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
                 Parametros["MostrarOpcoes"] = True
 
+            simulador_evento = Parametros.get("Simulador")
+            if simulador_evento is not None:
+                if evento.type == pygame.MOUSEWHEEL and simulador_evento.arena.collidepoint(pygame.mouse.get_pos()):
+                    simulador_evento.ajustar_zoom(evento.y * 0.08)
+                elif evento.type == pygame.MOUSEBUTTONDOWN and simulador_evento.arena.collidepoint(evento.pos):
+                    if evento.button == 4:
+                        simulador_evento.ajustar_zoom(0.08)
+                    elif evento.button == 5:
+                        simulador_evento.ajustar_zoom(-0.08)
+
         simulador = Parametros.get("Simulador")
         partida = Parametros.get("PartidaAtual")
         jogador_local = _obter_jogador_local(partida) if partida is not None else None

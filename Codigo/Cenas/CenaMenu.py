@@ -1,4 +1,5 @@
 import pygame
+import random
 
 from Codigo.Classes.Player import Player
 from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, Escurecer
@@ -24,7 +25,7 @@ def _carregar_logo_menu():
         imagem = pygame.image.load(caminho).convert_alpha()
     except Exception:
         return None
-    return pygame.transform.smoothscale(imagem, (320, 320))
+    return pygame.transform.smoothscale(imagem, (390, 390))
 
 
 def _atualizar_discord_presence_menu(INFO, modo):
@@ -38,7 +39,7 @@ def TelaMenu(TELA, ESTADOS, CONFIG, INFO, Parametros):
 
     logo = Parametros.get("LogoMenu")
     if logo is not None:
-        TELA.blit(logo, logo.get_rect(center=(960, 260)))
+        TELA.blit(logo, logo.get_rect(center=(960, 280)))
 
     Parametros["BotoesBase"]["Jogar"].desenhar(TELA)
     Parametros["BotoesBase"]["Configuracoes"].desenhar(TELA)
@@ -53,9 +54,9 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
         "TelaBase": TelaMenu,
         "ModoMenu": "base",
         "BotoesBase": {
-            "Jogar": Botao(760, 460, 400, 90, "Jogar"),
-            "Configuracoes": Botao(760, 570, 400, 90, "Configurações"),
-            "Sair": Botao(760, 680, 400, 90, "Sair"),
+            "Jogar": Botao(760, 500, 400, 90, "Jogar"),
+            "Configuracoes": Botao(760, 610, 400, 90, "Configurações"),
+            "Sair": Botao(760, 720, 400, 90, "Sair"),
         },
         "EscolhaSet": InicializaTelaEscolhaSet(CONFIG),
         "Pareamento": InicializaTelaPareamento(),
@@ -70,7 +71,7 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
 
 def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
     Parametros = InicializaMenu(TELA, ESTADOS, CONFIG, INFO)
-    tocar_musica("Menu1")
+    tocar_musica(random.choice(("Menu1", "Menu2")))
 
     while ESTADOS["Menu"] and ESTADOS["Rodando"]:
         _atualizar_discord_presence_menu(INFO, Parametros.get("ModoMenu", "base"))
