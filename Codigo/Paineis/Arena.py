@@ -7,12 +7,22 @@ class ArenaBatalha:
     """Arena com medidas físicas em metros e projeção para pixels."""
 
     DIAMETRO_PERSONAGEM_M = 1.0
+    ZOOM_MIN = 0.45
+    ZOOM_MAX = 2.2
 
     def __init__(self, x_px=430, y_px=160, largura_max_px=1060, altura_max_px=700, numero_batalha=1, zoom=1.0):
         self.viewport = pygame.Rect(int(x_px), int(y_px), int(largura_max_px), int(altura_max_px))
         self.numero_batalha = max(1, int(numero_batalha))
-        self.zoom = max(0.2, float(zoom))
+        self.zoom = max(self.ZOOM_MIN, min(self.ZOOM_MAX, float(zoom)))
         self.largura_m, self.altura_m = self._dimensoes_por_batalha(self.numero_batalha)
+
+
+    def ajustar_zoom(self, delta_zoom):
+        novo_zoom = max(self.ZOOM_MIN, min(self.ZOOM_MAX, self.zoom + float(delta_zoom)))
+        if abs(novo_zoom - self.zoom) < 0.0001:
+            return False
+        self.zoom = novo_zoom
+        return True
 
     @staticmethod
     def _dimensoes_por_batalha(numero_batalha):

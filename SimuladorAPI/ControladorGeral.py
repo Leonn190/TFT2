@@ -1,3 +1,4 @@
+import random
 from copy import deepcopy
 
 from SimuladorAPI.SimuladoCombate import SimuladoCombate
@@ -9,6 +10,8 @@ class ControladorGeral:
     def __init__(self, intervalo_acao_bot_s=5):
         self.intervalo_acao_bot_s = int(intervalo_acao_bot_s)
         self.simulador = SimuladoCombate()
+        self.chance_base_acao_bot = 95
+        self.reducao_chance_por_acao = 10
 
     @staticmethod
     def _jogador_eh_bot(jogador):
@@ -22,12 +25,28 @@ class ControladorGeral:
     def _tempo_atual_ms(estado_partida):
         return int(estado_partida.get("tempo_atual_ms", 0))
 
+    def _estado_bot(self, estado_partida, player_id):
+        return estado_partida.setdefault("bot_estados", {}).setdefault(player_id, {"chance_acao": self.chance_base_acao_bot})
+
+    def resetar_turno_bot(self, estado_partida, player_id):
+        self._estado_bot(estado_partida, player_id)["chance_acao"] = self.chance_base_acao_bot
+
+    def deve_tentar_acao_bot(self, estado_partida, player_id):
+        chance = int(self._estado_bot(estado_partida, player_id).get("chance_acao", self.chance_base_acao_bot))
+        chance = max(0, min(100, chance))
+        return random.random() * 100 < chance
+
     def pode_bot_jogar(self, estado_partida, player_id):
         proximo_tick = estado_partida.get("bot_proximo_tick", {}).get(player_id, 0)
         return self._tempo_atual_ms(estado_partida) >= int(proximo_tick)
 
-    def registrar_acao_bot(self, estado_partida, player_id):
-        estado_partida.setdefault("bot_proximo_tick", {})[player_id] = self._tempo_atual_ms(estado_partida) + self.intervalo_acao_bot_s * 1000
+    def registrar_acao_bot(self, estado_partida, player_id, reduzir_intervalo=False):
+        intervalo_ms = self.intervalo_acao_bot_s * 1000
+        if reduzir_intervalo:
+            intervalo_ms = max(1000, intervalo_ms // 2)
+        estado_partida.setdefault("bot_proximo_tick", {})[player_id] = self._tempo_atual_ms(estado_partida) + intervalo_ms
+        estado_bot = self._estado_bot(estado_partida, player_id)
+        estado_bot["chance_acao"] = max(0, int(estado_bot.get("chance_acao", self.chance_base_acao_bot)) - self.reducao_chance_por_acao)
 
     def avancar_tempo(self, estado_partida, delta_ms):
         estado_partida["tempo_atual_ms"] = max(0, int(estado_partida.get("tempo_atual_ms", 0)) + int(delta_ms))
@@ -36,10 +55,7 @@ class ControladorGeral:
     def parear_jogadores_vivos(jogadores_ids, estado_partida):
         vivos = [jid for jid in jogadores_ids if estado_partida["jogadores"].get(jid, {}).get("vida", 0) > 0]
         vivos.sort()
-        pares = []
-        for i in range(0, len(vivos) - 1, 2):
-            pares.append((vivos[i], vivos[i + 1]))
-        return pares
+        return [(vivos[i], vivos[i + 1]) for i in range(0, len(vivos) - 1, 2)]
 
     def simular_e_aplicar_batalhas(self, estado_partida, jogadores_ids):
         batalhas = []

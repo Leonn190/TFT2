@@ -39,12 +39,9 @@ class SimuladorBatalha:
         self._iniciar_round(0)
 
     def ajustar_zoom(self, delta_zoom):
-        novo_zoom = max(0.45, min(2.2, self.arena_config.zoom + float(delta_zoom)))
-        if abs(novo_zoom - self.arena_config.zoom) < 0.0001:
-            return
-
         arena_antiga = self.arena.copy()
-        self.arena_config.zoom = novo_zoom
+        if not self.arena_config.ajustar_zoom(delta_zoom):
+            return
         self.arena = self.arena_config.rect
         self._reposicionar_personagens_por_zoom(arena_antiga, self.arena)
 

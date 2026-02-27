@@ -157,6 +157,11 @@ class Ativador:
         clone = deepcopy(carta)
         clone["uid"] = self._proximo_uid_carta
         self._proximo_uid_carta += 1
+        clone["nivel"] = max(1, int(clone.get("nivel", 1) or 1))
+        for campo in ("vida", "atk", "spd", "spa", "def", "defesa"):
+            if campo in clone and f"{campo}_base" not in clone:
+                clone[f"{campo}_base"] = clone.get(campo)
+        self._escalar_atributos_por_nivel(clone)
         return clone
 
     def _comprar_cartas_estoque(self, partida_id, quantidade, chances_loja=None, raridades_bloqueadas=None):
@@ -198,6 +203,58 @@ class Ativador:
         if isinstance(carta, dict):
             return carta.get(campo, padrao)
         return getattr(carta, campo, padrao)
+
+    @classmethod
+    def _nivel_carta(cls, carta):
+        return max(1, int(cls._obter_campo(carta, "nivel", 1) or 1))
+
+    @classmethod
+    def _aplicar_nivel_carta(cls, carta, nivel):
+        nivel = max(1, int(nivel))
+        if isinstance(carta, dict):
+            carta["nivel"] = nivel
+        else:
+            setattr(carta, "nivel", nivel)
+        return carta
+
+    @classmethod
+    def _escalar_atributos_por_nivel(cls, carta):
+        fator = 1.0 + 0.30 * (cls._nivel_carta(carta) - 1)
+        for campo in ("vida", "atk", "spd", "spa", "def", "defesa"):
+            chave_base = f"{campo}_base"
+            base = cls._obter_campo(carta, chave_base)
+            if base in (None, "", "-"):
+                base = cls._obter_campo(carta, campo, 0)
+                if isinstance(carta, dict):
+                    carta[chave_base] = base
+                else:
+                    setattr(carta, chave_base, base)
+            try:
+                novo = int(round(float(base) * fator))
+            except (TypeError, ValueError):
+                continue
+            if isinstance(carta, dict):
+                carta[campo] = novo
+            else:
+                setattr(carta, campo, novo)
+        return carta
+
+    @classmethod
+    def _mesmo_personagem(cls, a, b):
+        return a is not None and b is not None and cls._obter_campo(a, "id") == cls._obter_campo(b, "id")
+
+    def _tentar_fundir_cartas_iguais(self, estado_jogador, carta_alvo):
+        if carta_alvo is None:
+            return False
+        uid = self._obter_campo(carta_alvo, "uid")
+        for i, carta in enumerate(list(estado_jogador["banco"])):
+            if not self._mesmo_personagem(carta_alvo, carta) or self._obter_campo(carta, "uid") == uid:
+                continue
+            estado_jogador["banco"].pop(i)
+            self._aplicar_nivel_carta(carta_alvo, self._nivel_carta(carta_alvo) + 1)
+            self._escalar_atributos_por_nivel(carta_alvo)
+            return True
+        return False
 
     def _devolver_ao_estoque(self, partida_id, carta):
         carta_id = self._obter_campo(carta, "id")
@@ -269,11 +326,14 @@ class Ativador:
         if not self._controlador_geral.pode_bot_jogar(estado_partida, player_id):
             return False, "aguardando_intervalo"
 
+        if not self._controlador_geral.deve_tentar_acao_bot(estado_partida, player_id):
+            self._controlador_geral.registrar_acao_bot(estado_partida, player_id, reduzir_intervalo=False)
+            return False, "bot_nao_agiu"
+
         bot_controladores = estado_partida.setdefault("bot_controladores", {})
         bot = bot_controladores.setdefault(player_id, Bot(player_id=player_id, nome=f"BOT-{player_id}"))
-        ok, motivo = bot.jogar_turno(self, partida, player_id)
-        if ok:
-            self._controlador_geral.registrar_acao_bot(estado_partida, player_id)
+        ok, motivo, reduzir_intervalo = bot.jogar_turno(self, partida, player_id)
+        self._controlador_geral.registrar_acao_bot(estado_partida, player_id, reduzir_intervalo=bool(ok and reduzir_intervalo))
         return ok, motivo
 
     def processar_turnos_bots(self, partida):
@@ -337,8 +397,10 @@ class Ativador:
             return False, "banco_cheio"
 
         estado_jogador["ouro"] -= custo
-        estado_jogador["banco"].append(deepcopy(carta))
+        carta_comprada = deepcopy(carta)
+        estado_jogador["banco"].append(carta_comprada)
         del estado_jogador["loja"][indice_loja]
+        self._tentar_fundir_cartas_iguais(estado_jogador, carta_comprada)
         self._registrar_evento(self._chave(partida), player_id, "comprar_loja", {"indice_loja": indice_loja, "uid": self._obter_campo(carta, "uid")})
         return True, "ok"
 
@@ -413,9 +475,12 @@ class Ativador:
 
         carta = estado_jogador["banco"].pop(indice_banco)
         carta_dict = carta.para_dict() if hasattr(carta, "para_dict") else carta
-        estado_jogador["ouro"] += self._obter_campo(carta_dict, "custo", 1)
-        self._devolver_ao_estoque(partida_id, carta_dict)
-        self._registrar_evento(partida_id, player_id, "vender_banco", {"indice_banco": indice_banco, "uid": self._obter_campo(carta_dict, "uid")})
+        nivel = self._nivel_carta(carta_dict)
+        valor_venda = max(1, int(self._obter_campo(carta_dict, "custo", 1) or 1) - (nivel - 1))
+        estado_jogador["ouro"] += valor_venda
+        for _ in range(2 ** max(0, nivel - 1)):
+            self._devolver_ao_estoque(partida_id, carta_dict)
+        self._registrar_evento(partida_id, player_id, "vender_banco", {"indice_banco": indice_banco, "uid": self._obter_campo(carta_dict, "uid"), "nivel": nivel, "valor_venda": valor_venda})
         return True, "ok"
 
     @classmethod
@@ -535,6 +600,25 @@ class Ativador:
         self._registrar_evento(self._chave(partida), player_id, "alocar_sinergia", {"card_uids": list(card_uids)})
         return True, "ok"
 
+    def aumentar_nivel_personagem(self, partida, player_id):
+        self._inicializar_partida(partida)
+        estado_jogador = self._partidas[self._chave(partida)]["jogadores"][player_id]
+        ok_cooldown, motivo_cooldown = self._validar_cooldown_acao_bot(partida, player_id, estado_jogador, "aumentar_nivel_personagem")
+        if not ok_cooldown:
+            return False, motivo_cooldown
+
+        for slot in estado_jogador["mapa"]:
+            carta = slot.get("carta")
+            if carta is not None and self._tentar_fundir_cartas_iguais(estado_jogador, carta):
+                estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
+                return True, "ok"
+
+        for carta in list(estado_jogador["banco"]):
+            if self._tentar_fundir_cartas_iguais(estado_jogador, carta):
+                return True, "ok"
+
+        return False, "sem_copia_para_upar"
+
     def posicionar_do_banco(self, partida, player_id, indice_banco, q, r):
         del q, r
         self._inicializar_partida(partida)
@@ -569,9 +653,15 @@ class Ativador:
 
         if carta_slot is None:
             slot["carta"] = estado_jogador["banco"].pop(indice_banco)
+            self._tentar_fundir_cartas_iguais(estado_jogador, slot["carta"])
+        elif self._mesmo_personagem(carta_banco, carta_slot):
+            estado_jogador["banco"].pop(indice_banco)
+            self._aplicar_nivel_carta(carta_slot, self._nivel_carta(carta_slot) + 1)
+            self._escalar_atributos_por_nivel(carta_slot)
         else:
             slot["carta"] = carta_banco
             estado_jogador["banco"][indice_banco] = carta_slot
+            self._tentar_fundir_cartas_iguais(estado_jogador, slot["carta"])
 
         estado_jogador["sinergias"] = self._calcular_sinergias(estado_jogador["mapa"])
         self._registrar_evento(self._chave(partida), player_id, "mover_banco_para_mapa", {"indice_banco": indice_banco, "slot_id": slot_id})
@@ -656,6 +746,7 @@ class Ativador:
 
         jogador_partida = next((j for j in partida.jogadores if getattr(j, "player_id", None) == player_id), None)
         if self._jogador_eh_bot(jogador_partida):
+            self._controlador_geral.resetar_turno_bot(self._partidas[partida_id], player_id)
             self.executar_turno_bot(partida, player_id)
 
         return True, "ok"
