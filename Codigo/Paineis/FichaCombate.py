@@ -18,7 +18,10 @@ class FichaCombate:
         chave = (str(caminho), tamanho)
         if chave in self._cache:
             return self._cache[chave]
-        arquivo = Path(str(caminho or ""))
+        caminho_str = str(caminho or "").strip()
+        if not caminho_str or caminho_str == ".":
+            return None
+        arquivo = Path(caminho_str)
         if not arquivo.exists():
             return None
         try:

@@ -6,7 +6,7 @@ from SimuladorAPI.SimuladoCombate import SimuladoCombate
 class ControladorGeral:
     """Orquestra rodadas, pareamentos e aplicação de resultados de combate."""
 
-    def __init__(self, intervalo_acao_bot_s=5):
+    def __init__(self, intervalo_acao_bot_s=6):
         self.intervalo_acao_bot_s = int(intervalo_acao_bot_s)
         self.simulador = SimuladoCombate()
 
