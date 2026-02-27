@@ -18,15 +18,19 @@ class FichaCombate:
         chave = (str(caminho), tamanho)
         if chave in self._cache:
             return self._cache[chave]
-        arquivo = Path(str(caminho or ""))
-        if not arquivo.exists():
+        caminho_str = str(caminho or "").strip()
+        if not caminho_str or caminho_str in {".", "./"}:
+            return None
+
+        arquivo = Path(caminho_str)
+        if not arquivo.exists() or not arquivo.is_file():
             return None
         try:
             img = pygame.image.load(str(arquivo)).convert_alpha()
             img = pygame.transform.smoothscale(img, tamanho)
             self._cache[chave] = img
             return img
-        except pygame.error:
+        except (pygame.error, FileNotFoundError, OSError):
             return None
 
     def desenhar_lista(self, tela, personagens, rect, titulo):
