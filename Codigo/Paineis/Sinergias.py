@@ -197,7 +197,6 @@ class Sinergias:
         mouse_pos = pygame.mouse.get_pos()
         for linha in linhas:
             nome = linha["sinergia"]
-            quantidade = linha["quantidade"]
             texto_linha = f"{nome} {linha['progresso']}"
             cor = (226, 230, 236) if linha["ativada"] else (130, 136, 146)
             rect_item = pygame.Rect(self.rect.x + 8, y - 2, self.rect.width - 16, 30)
