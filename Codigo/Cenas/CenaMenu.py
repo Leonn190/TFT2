@@ -3,7 +3,7 @@ import random
 
 from Codigo.Classes.Player import Player
 from Codigo.Modulos.EfeitosTela import AplicarClaridade, Clarear, DesenharFPS, Escurecer
-from Codigo.Modulos.GeradoresVisuais import obter_cor, obter_fonte
+from Codigo.Modulos.GeradoresVisuais import obter_cor
 from Codigo.Modulos.Sonoridades import atualizar_musica, parar_musica, tocar_musica
 from Codigo.Prefabs.Botao import Botao
 from Codigo.Server.Pareamento import ServidorPareamento
@@ -64,7 +64,6 @@ def InicializaMenu(TELA, ESTADOS, CONFIG, INFO):
         "ConfigOriginal": {},
         "SetsSelecionados": [],
         "ResultadoPareamento": {},
-        "Ticket": None,
         "LogoMenu": _carregar_logo_menu(),
     }
 
@@ -142,7 +141,6 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                     if not sets_escolhidos:
                         continue
 
-                    tickets = []
                     for set_nome in sets_escolhidos:
                         jogador = Player(
                             player_id="local-1",
@@ -150,11 +148,9 @@ def MenuLoop(TELA, RELOGIO, ESTADOS, CONFIG, INFO):
                             set_escolhido=set_nome,
                             categoria="player",
                         )
-                        resposta = servico_pareamento.entrar_fila(jogador, set_nome)
-                        tickets.append(resposta["ticket"])
+                        servico_pareamento.entrar_fila(jogador, set_nome)
 
                     Parametros["SetsSelecionados"] = sets_escolhidos
-                    Parametros["Ticket"] = tickets
                     Parametros["ResultadoPareamento"] = {}
                     Parametros["ModoMenu"] = "pareamento"
                     Parametros["TelaAtiva"] = TelaPareamento
